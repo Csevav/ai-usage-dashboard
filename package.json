@@ -1,6 +1,6 @@
 {
   "name": "@csevav/ai-usage-dashboard",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Visual usage dashboard for Claude Code + OpenAI Codex — per-conversation ranking, real costs, side-by-side comparison. Chinese UI, Beijing time.",
   "keywords": [
     "claude",
