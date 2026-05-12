@@ -1,5 +1,5 @@
 {
-  "name": "@lukemei/ai-usage-dashboard",
+  "name": "@Csevav/ai-usage-dashboard",
   "version": "0.1.0",
   "description": "Visual usage dashboard for Claude Code + OpenAI Codex — per-conversation ranking, real costs, side-by-side comparison. Chinese UI, Beijing time.",
   "keywords": [
@@ -15,13 +15,13 @@
   ],
   "author": "Luke Mei",
   "license": "MIT",
-  "homepage": "https://github.com/lukemei/ai-usage-dashboard#readme",
+  "homepage": "https://github.com/Csevav/ai-usage-dashboard#readme",
   "bugs": {
-    "url": "https://github.com/lukemei/ai-usage-dashboard/issues"
+    "url": "https://github.com/Csevav/ai-usage-dashboard/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/lukemei/ai-usage-dashboard.git"
+    "url": "git+https://github.com/Csevav/ai-usage-dashboard.git"
   },
   "scripts": {
     "copy-dashboard": "bash ./scripts/copy-dashboard.sh",
