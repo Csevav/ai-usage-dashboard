@@ -104,12 +104,20 @@ print(json.dumps(out))
 export GENERATED_AT=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
 if [[ -z "${USER_NAME:-}" ]]; then
+  USER_NAME="User"
   if command -v claude >/dev/null 2>&1; then
-    USER_NAME=$(claude auth status --json 2>/dev/null \
-      | python3 -c 'import json, sys; d=json.load(sys.stdin); e=d.get("email","").split("@")[0]; print(e[:1].upper()+e[1:] if e else "User")' 2>/dev/null \
-      || echo "User")
-  else
-    USER_NAME="User"
+    AUTH_JSON=$(claude auth status --json 2>/dev/null || true)
+    if [[ -n "$AUTH_JSON" ]]; then
+      DETECTED=$(echo "$AUTH_JSON" | python3 -c 'import json, sys
+try:
+    d = json.load(sys.stdin)
+    e = (d.get("email") or "").split("@")[0]
+    print((e[:1].upper() + e[1:]) if e else "")
+except Exception:
+    print("")
+' 2>/dev/null || true)
+      [[ -n "$DETECTED" ]] && USER_NAME="$DETECTED"
+    fi
   fi
 fi
 export USER_NAME
@@ -154,13 +162,15 @@ def codex_title(s):
                     continue
                 p = e.get("payload") or {}
                 if e.get("type") != "response_item": continue
-                if p.get("type") != "message" or p.get("role") != "user": continue
+                if p.get("type") != "message" or p.get("role") not in ("user", "developer"): continue
                 for c in (p.get("content") or []):
                     t = c.get("text") or ""
-                    if not t or t.startswith("<"):  # skip env/system wrappers
+                    if not t: continue
+                    # skip env/system XML wrappers and AGENTS.md preambles
+                    stripped = t.strip()
+                    if stripped.startswith("<") or stripped.startswith("# AGENTS.md"):
                         continue
-                    # Take first line, trimmed
-                    first = t.strip().split("\n", 1)[0].strip()
+                    first = stripped.split("\n", 1)[0].strip()
                     if first:
                         title = first[:80]
                         break

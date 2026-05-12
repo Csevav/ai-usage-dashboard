@@ -72,12 +72,32 @@
   .sub { color: var(--muted); margin: 6px 0 28px; font-size: 12.5px; }
   .theme-toggle {
     background: var(--surface); border: 1px solid var(--border);
-    border-radius: 10px; cursor: pointer; padding: 8px 10px;
-    color: var(--muted); display: flex; align-items: center;
+    border-radius: 10px; cursor: pointer;
+    color: var(--ink-2); display: inline-flex;
+    align-items: center; justify-content: center;
+    width: 36px; height: 36px; padding: 0;
     line-height: 1; box-shadow: var(--shadow-sm);
     transition: all .18s ease;
   }
   .theme-toggle:hover { color: var(--ink); border-color: var(--border-2); }
+
+  .lang-toggle {
+    display: inline-flex; gap: 2px; padding: 3px;
+    height: 36px; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 10px;
+    box-shadow: var(--shadow-sm);
+  }
+  .lang-toggle button {
+    background: transparent; border: none; cursor: pointer;
+    padding: 0 10px; min-width: 28px; border-radius: 7px;
+    color: var(--muted); font: 600 11.5px/1 var(--sans);
+    letter-spacing: .04em;
+    display: inline-flex; align-items: center; justify-content: center;
+    transition: all .15s ease;
+  }
+  .lang-toggle button:hover { color: var(--ink); }
+  .lang-toggle button.active { background: var(--ink); color: var(--surface); }
+  .header-tools { display: flex; align-items: center; gap: 8px; }
 
   /* ─── Section title ────────────────────────────────────── */
   .section-title {
@@ -283,8 +303,13 @@
 <body>
 <div class="wrap">
   <div class="header-row">
-    <h1>__USER_NAME__ · 用量看板</h1>
-    <button id="theme-toggle" class="theme-toggle" title="切换主题" aria-label="切换主题">
+    <h1>__USER_NAME__ · <span data-i18n="title">用量看板</span></h1>
+    <div class="header-tools">
+    <div id="lang-toggle" class="lang-toggle" role="tablist" aria-label="Language">
+      <button data-lang="zh" aria-label="中文">中</button>
+      <button data-lang="en" aria-label="English">EN</button>
+    </div>
+    <button id="theme-toggle" class="theme-toggle" data-i18n-title="theme_toggle" title="切换主题" aria-label="切换主题">
       <svg id="icon-sun" xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
         <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
@@ -295,6 +320,7 @@
         <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
       </svg>
     </button>
+    </div>
   </div>
   <div class="sub" id="sub"></div>
 
@@ -302,54 +328,54 @@
 
   <div class="tabs-row">
     <div class="tabs">
-      <button class="tab active" data-view="today">今日</button>
-      <button class="tab" data-view="daily">按天</button>
-      <button class="tab" data-view="weekly">按周</button>
-      <button class="tab" data-view="monthly">按月</button>
+      <button class="tab active" data-view="today" data-i18n="tab_today">今日</button>
+      <button class="tab" data-view="daily" data-i18n="tab_daily">按天</button>
+      <button class="tab" data-view="weekly" data-i18n="tab_weekly">按周</button>
+      <button class="tab" data-view="monthly" data-i18n="tab_monthly">按月</button>
     </div>
-    <select id="year-select" class="year-select" title="按年份筛选"></select>
+    <select id="year-select" class="year-select" data-i18n-title="year_filter" title="按年份筛选"></select>
   </div>
 
   <div class="kpis">
-    <div class="kpi"><div class="label">总花费</div><div class="value" id="kpi-cost">—</div></div>
-    <div class="kpi"><div class="label">Token 总量</div><div class="value" id="kpi-tokens">—</div></div>
-    <div class="kpi"><div class="label"><span class="has-tip">缓存命中<span class="tip-icon">?</span><span class="tip-body">复用了之前对话已缓存的内容（系统提示、历史消息、工具定义等），价格比普通输入便宜约 10×。这个数字越高，说明 Prompt Caching 越有效，省下的钱越多。</span></span></div><div class="value" id="kpi-cache">—</div></div>
-    <div class="kpi"><div class="label">对话数</div><div class="value" id="kpi-periods">—</div></div>
+    <div class="kpi"><div class="label" data-i18n="kpi_cost">总花费</div><div class="value" id="kpi-cost">—</div></div>
+    <div class="kpi"><div class="label" data-i18n="kpi_tokens">Token 总量</div><div class="value" id="kpi-tokens">—</div></div>
+    <div class="kpi"><div class="label"><span class="has-tip"><span data-i18n="kpi_cache">缓存命中</span><span class="tip-icon">?</span><span class="tip-body" data-i18n="cache_tip">复用了之前对话已缓存的内容（系统提示、历史消息、工具定义等），价格比普通输入便宜约 10×。这个数字越高，说明 Prompt Caching 越有效，省下的钱越多。</span></span></div><div class="value" id="kpi-cache">—</div></div>
+    <div class="kpi"><div class="label" data-i18n="kpi_sessions">对话数</div><div class="value" id="kpi-periods">—</div></div>
   </div>
 
   <div class="kpis-stats">
-    <div class="kpi"><div class="label">最低 / 对话</div><div class="value" id="kpi-min">—</div></div>
-    <div class="kpi"><div class="label">平均 / 对话</div><div class="value" id="kpi-avg">—</div></div>
-    <div class="kpi"><div class="label">最高 / 对话</div><div class="value" id="kpi-max">—</div></div>
+    <div class="kpi"><div class="label" data-i18n="kpi_min">最低 / 对话</div><div class="value" id="kpi-min">—</div></div>
+    <div class="kpi"><div class="label" data-i18n="kpi_avg">平均 / 对话</div><div class="value" id="kpi-avg">—</div></div>
+    <div class="kpi"><div class="label" data-i18n="kpi_max">最高 / 对话</div><div class="value" id="kpi-max">—</div></div>
   </div>
 
   <div class="grid">
     <div class="card">
-      <h3 id="bar-title">各时段花费（按模型）</h3>
+      <h3 id="bar-title" data-i18n="chart_cost_by_model">各时段花费（按模型）</h3>
       <canvas id="bar"></canvas>
     </div>
     <div class="card">
-      <h3>各模型花费占比</h3>
+      <h3 data-i18n="chart_cost_share">各模型花费占比</h3>
       <canvas id="doughnut"></canvas>
     </div>
   </div>
 
   <div class="card detail-card">
     <div class="detail-head">
-      <h3>明细</h3>
+      <h3 data-i18n="detail_title">明细</h3>
       <div class="detail-tabs" data-target="claude">
-        <button class="dtab active" data-mode="session">对话</button>
-        <button class="dtab" data-mode="period">时段</button>
+        <button class="dtab active" data-mode="session" data-i18n="detail_session">对话</button>
+        <button class="dtab" data-mode="period" data-i18n="detail_period">时段</button>
       </div>
     </div>
     <table id="tbl-session" class="detail-table">
       <thead>
         <tr>
-          <th data-sort="title">标题</th>
-          <th data-sort="date">日期</th>
-          <th class="num" data-sort="cost">花费 ($)</th>
-          <th class="num" data-sort="tokens">Token</th>
-          <th>模型</th>
+          <th data-sort="title" data-i18n="col_title">标题</th>
+          <th data-sort="date" data-i18n="col_date">日期</th>
+          <th class="num" data-sort="cost" data-i18n="col_cost">花费 ($)</th>
+          <th class="num" data-sort="tokens" data-i18n="col_tokens">Token</th>
+          <th data-i18n="col_models">模型</th>
         </tr>
       </thead>
       <tbody></tbody>
@@ -357,72 +383,72 @@
     <table id="tbl" class="detail-table" style="display:none">
       <thead>
         <tr>
-          <th>时段</th>
-          <th class="num">花费 ($)</th>
-          <th class="num">输入</th>
-          <th class="num">输出</th>
-          <th class="num">缓存写入</th>
-          <th class="num">缓存命中</th>
-          <th>模型</th>
+          <th data-i18n="col_period">时段</th>
+          <th class="num" data-i18n="col_cost">花费 ($)</th>
+          <th class="num" data-i18n="col_input">输入</th>
+          <th class="num" data-i18n="col_output">输出</th>
+          <th class="num" data-i18n="col_cache_write">缓存写入</th>
+          <th class="num" data-i18n="col_cache_read">缓存命中</th>
+          <th data-i18n="col_models">模型</th>
         </tr>
       </thead>
       <tbody></tbody>
     </table>
-    <button class="show-more" id="claude-show-more" style="display:none">查看全部</button>
+    <button class="show-more" id="claude-show-more" style="display:none" data-i18n="show_all">查看全部</button>
   </div>
 
   <div class="section-title codex">OpenAI Codex</div>
 
   <div class="tabs-row">
     <div class="tabs" id="codex-tabs">
-      <button class="tab active" data-view="today">今日</button>
-      <button class="tab" data-view="daily">按天</button>
-      <button class="tab" data-view="weekly">按周</button>
-      <button class="tab" data-view="monthly">按月</button>
+      <button class="tab active" data-view="today" data-i18n="tab_today">今日</button>
+      <button class="tab" data-view="daily" data-i18n="tab_daily">按天</button>
+      <button class="tab" data-view="weekly" data-i18n="tab_weekly">按周</button>
+      <button class="tab" data-view="monthly" data-i18n="tab_monthly">按月</button>
     </div>
-    <select id="codex-year-select" class="year-select" title="按年筛选" disabled></select>
+    <select id="codex-year-select" class="year-select" data-i18n-title="year_filter" title="按年筛选" disabled></select>
   </div>
 
   <div class="kpis" id="codex-kpis">
-    <div class="kpi codex-hi"><div class="label">总花费</div><div class="value" id="codex-kpi-cost">—</div></div>
-    <div class="kpi"><div class="label">Token 总量</div><div class="value" id="codex-kpi-tokens">—</div></div>
-    <div class="kpi"><div class="label"><span class="has-tip">缓存命中<span class="tip-icon">?</span><span class="tip-body">复用了之前对话已缓存的内容（系统提示、历史消息、工具定义等），价格比普通输入便宜约 10×。这个数字越高，说明 Prompt Caching 越有效，省下的钱越多。</span></span></div><div class="value" id="codex-kpi-cache">—</div></div>
-    <div class="kpi"><div class="label">对话数</div><div class="value" id="codex-kpi-periods">—</div></div>
+    <div class="kpi codex-hi"><div class="label" data-i18n="kpi_cost">总花费</div><div class="value" id="codex-kpi-cost">—</div></div>
+    <div class="kpi"><div class="label" data-i18n="kpi_tokens">Token 总量</div><div class="value" id="codex-kpi-tokens">—</div></div>
+    <div class="kpi"><div class="label"><span class="has-tip"><span data-i18n="kpi_cache">缓存命中</span><span class="tip-icon">?</span><span class="tip-body" data-i18n="cache_tip">复用了之前对话已缓存的内容（系统提示、历史消息、工具定义等），价格比普通输入便宜约 10×。这个数字越高，说明 Prompt Caching 越有效，省下的钱越多。</span></span></div><div class="value" id="codex-kpi-cache">—</div></div>
+    <div class="kpi"><div class="label" data-i18n="kpi_sessions">对话数</div><div class="value" id="codex-kpi-periods">—</div></div>
   </div>
 
   <div class="kpis-stats">
-    <div class="kpi"><div class="label">最低 / 对话</div><div class="value" id="codex-kpi-min">—</div></div>
-    <div class="kpi"><div class="label">平均 / 对话</div><div class="value" id="codex-kpi-avg">—</div></div>
-    <div class="kpi"><div class="label">最高 / 对话</div><div class="value" id="codex-kpi-max">—</div></div>
+    <div class="kpi"><div class="label" data-i18n="kpi_min">最低 / 对话</div><div class="value" id="codex-kpi-min">—</div></div>
+    <div class="kpi"><div class="label" data-i18n="kpi_avg">平均 / 对话</div><div class="value" id="codex-kpi-avg">—</div></div>
+    <div class="kpi"><div class="label" data-i18n="kpi_max">最高 / 对话</div><div class="value" id="codex-kpi-max">—</div></div>
   </div>
 
   <div class="grid">
     <div class="card">
-      <h3 id="codex-bar-title">各时段花费（按模型）</h3>
+      <h3 id="codex-bar-title" data-i18n="chart_cost_by_model">各时段花费（按模型）</h3>
       <canvas id="codex-bar"></canvas>
     </div>
     <div class="card">
-      <h3>各模型花费占比</h3>
+      <h3 data-i18n="chart_cost_share">各模型花费占比</h3>
       <canvas id="codex-doughnut"></canvas>
     </div>
   </div>
 
   <div class="card detail-card">
     <div class="detail-head">
-      <h3>Codex 明细</h3>
+      <h3 data-i18n="detail_codex_title">Codex 明细</h3>
       <div class="detail-tabs" data-target="codex">
-        <button class="dtab active" data-mode="session">对话</button>
-        <button class="dtab" data-mode="period">时段</button>
+        <button class="dtab active" data-mode="session" data-i18n="detail_session">对话</button>
+        <button class="dtab" data-mode="period" data-i18n="detail_period">时段</button>
       </div>
     </div>
     <table id="codex-tbl-session" class="detail-table">
       <thead>
         <tr>
-          <th data-sort="title">标题</th>
-          <th data-sort="date">日期</th>
-          <th class="num" data-sort="cost">花费 ($)</th>
-          <th class="num" data-sort="tokens">Token</th>
-          <th>模型</th>
+          <th data-sort="title" data-i18n="col_title">标题</th>
+          <th data-sort="date" data-i18n="col_date">日期</th>
+          <th class="num" data-sort="cost" data-i18n="col_cost">花费 ($)</th>
+          <th class="num" data-sort="tokens" data-i18n="col_tokens">Token</th>
+          <th data-i18n="col_models">模型</th>
         </tr>
       </thead>
       <tbody></tbody>
@@ -430,40 +456,178 @@
     <table id="codex-tbl" class="detail-table" style="display:none">
       <thead>
         <tr>
-          <th>时段</th>
-          <th class="num">花费 ($)</th>
-          <th class="num">输入</th>
-          <th class="num">输出</th>
-          <th class="num">推理</th>
-          <th class="num">缓存命中</th>
-          <th>模型</th>
+          <th data-i18n="col_period">时段</th>
+          <th class="num" data-i18n="col_cost">花费 ($)</th>
+          <th class="num" data-i18n="col_input">输入</th>
+          <th class="num" data-i18n="col_output">输出</th>
+          <th class="num" data-i18n="col_reasoning">推理</th>
+          <th class="num" data-i18n="col_cache_read">缓存命中</th>
+          <th data-i18n="col_models">模型</th>
         </tr>
       </thead>
       <tbody></tbody>
     </table>
-    <button class="show-more" id="codex-show-more" style="display:none">查看全部</button>
+    <button class="show-more" id="codex-show-more" style="display:none" data-i18n="show_all">查看全部</button>
   </div>
 
-  <div class="section-title combined">综合对比</div>
+  <div class="section-title combined" data-i18n="section_combined">综合对比</div>
   <div class="combined-kpis">
-    <div class="kpi"><div class="label">Claude 总花费</div><div class="value" id="cmp-claude">—</div></div>
-    <div class="kpi codex-hi"><div class="label">Codex 总花费</div><div class="value" id="cmp-codex">—</div></div>
-    <div class="kpi highlight"><div class="label">合计</div><div class="value" id="cmp-total">—</div></div>
+    <div class="kpi"><div class="label" data-i18n="cmp_claude">Claude 总花费</div><div class="value" id="cmp-claude">—</div></div>
+    <div class="kpi codex-hi"><div class="label" data-i18n="cmp_codex">Codex 总花费</div><div class="value" id="cmp-codex">—</div></div>
+    <div class="kpi highlight"><div class="label" data-i18n="cmp_total">合计</div><div class="value" id="cmp-total">—</div></div>
   </div>
   <div class="card" style="margin-bottom:16px">
-    <h3>每月花费对比 — Claude vs Codex</h3>
+    <h3 data-i18n="chart_combined">每月花费对比 — Claude vs Codex</h3>
     <canvas id="combined-bar" style="max-height:260px"></canvas>
   </div>
 
   <footer class="footer">
-    <span><a href="https://github.com/okrasn/ccusage-ui-dashboard" target="_blank" rel="noopener">GitHub</a> &middot; <a href="https://www.npmjs.com/package/ccusage-ui-dashboard" target="_blank" rel="noopener">npm</a></span>
-    <span>&copy; <span id="footer-year"></span> Claude 用量看板</span>
-    <span>由 <a href="https://claude.com" target="_blank" rel="noopener">Claude</a> 打造 &middot; 数据来源：本地 Claude Code 日志</span>
+    <span><a href="https://github.com/Csevav/ai-usage-dashboard" target="_blank" rel="noopener">GitHub</a> &middot; <a href="https://www.npmjs.com/package/@csevav/ai-usage-dashboard" target="_blank" rel="noopener">npm</a></span>
+    <span>&copy; <span id="footer-year"></span> <span data-i18n="footer_brand">Claude 用量看板</span></span>
+    <span data-i18n-html="footer_built">由 <a href="https://claude.com" target="_blank" rel="noopener">Claude</a> 打造 &middot; 数据来源：本地 Claude Code 日志</span>
   </footer>
 </div>
 
 <script>
 const DATA = __DATA__;
+
+// ── i18n ────────────────────────────────────────────────────────
+const I18N = {
+  zh: {
+    title:               "用量看板",
+    theme_toggle:        "切换主题",
+    lang_toggle:         "EN",
+    tab_today:           "今日",
+    tab_daily:           "按天",
+    tab_weekly:          "按周",
+    tab_monthly:         "按月",
+    year_filter:         "按年份筛选",
+    kpi_cost:            "总花费",
+    kpi_tokens:          "Token 总量",
+    kpi_cache:           "缓存命中",
+    kpi_sessions:        "对话数",
+    kpi_min:             "最低 / 对话",
+    kpi_avg:             "平均 / 对话",
+    kpi_max:             "最高 / 对话",
+    cache_tip:           "复用了之前对话已缓存的内容（系统提示、历史消息、工具定义等），价格比普通输入便宜约 10×。这个数字越高，说明 Prompt Caching 越有效，省下的钱越多。",
+    chart_cost_by_model: "各时段花费（按模型）",
+    chart_cost_share:    "各模型花费占比",
+    chart_combined:      "每月花费对比 — Claude vs Codex",
+    detail_title:        "明细",
+    detail_codex_title:  "Codex 明细",
+    detail_session:      "对话",
+    detail_period:       "时段",
+    col_period:          "时段",
+    col_cost:            "花费 ($)",
+    col_input:           "输入",
+    col_output:          "输出",
+    col_cache_write:     "缓存写入",
+    col_cache_read:      "缓存命中",
+    col_reasoning:       "推理",
+    col_models:          "模型",
+    col_title:           "标题",
+    col_date:            "日期",
+    col_tokens:          "Token",
+    section_combined:    "综合对比",
+    cmp_claude:          "Claude 总花费",
+    cmp_codex:           "Codex 总花费",
+    cmp_total:           "合计",
+    show_all:            "查看全部",
+    show_collapse:       "收起",
+    no_title:            "(无标题)",
+    footer_brand:        "Claude 用量看板",
+    footer_built:        '由 <a href="https://claude.com" target="_blank" rel="noopener">Claude</a> 打造 · 数据来源：本地 Claude Code 日志',
+    sub_generated:       "更新于 {time} · 数据来源：本地 Claude Code 日志 (~/.claude/projects)",
+    period_today:        "今日",
+    period_daily:        "每日",
+    period_weekly:       "每周",
+    period_monthly:      "每月",
+    chart_period_fmt:    "{period}花费（按模型）",
+  },
+  en: {
+    title:               "Usage Dashboard",
+    theme_toggle:        "Toggle theme",
+    lang_toggle:         "中",
+    tab_today:           "Today",
+    tab_daily:           "Daily",
+    tab_weekly:          "Weekly",
+    tab_monthly:         "Monthly",
+    year_filter:         "Filter by year",
+    kpi_cost:            "Total cost",
+    kpi_tokens:          "Total tokens",
+    kpi_cache:           "Cache hit",
+    kpi_sessions:        "Sessions",
+    kpi_min:             "Min / session",
+    kpi_avg:             "Avg / session",
+    kpi_max:             "Max / session",
+    cache_tip:           "Reuses content already cached from earlier in this conversation (system prompt, history, tool definitions). Roughly 10× cheaper than fresh input — the higher this number, the more Prompt Caching is saving you.",
+    chart_cost_by_model: "Cost per period (by model)",
+    chart_cost_share:    "Cost share by model",
+    chart_combined:      "Monthly cost — Claude vs Codex",
+    detail_title:        "Breakdown",
+    detail_codex_title:  "Codex breakdown",
+    detail_session:      "By session",
+    detail_period:       "By period",
+    col_period:          "Period",
+    col_cost:            "Cost ($)",
+    col_input:           "Input",
+    col_output:          "Output",
+    col_cache_write:     "Cache write",
+    col_cache_read:      "Cache hit",
+    col_reasoning:       "Reasoning",
+    col_models:          "Models",
+    col_title:           "Title",
+    col_date:            "Date",
+    col_tokens:          "Tokens",
+    section_combined:    "Side-by-side comparison",
+    cmp_claude:          "Claude total",
+    cmp_codex:           "Codex total",
+    cmp_total:           "Grand total",
+    show_all:            "Show all",
+    show_collapse:       "Collapse",
+    no_title:            "(untitled)",
+    footer_brand:        "AI Usage Dashboard",
+    footer_built:        'Built with <a href="https://claude.com" target="_blank" rel="noopener">Claude</a> · Data: local Claude Code logs',
+    sub_generated:       "Generated at {time} · data from local Claude logs (~/.claude/projects)",
+    period_today:        "Today",
+    period_daily:        "Daily",
+    period_weekly:       "Weekly",
+    period_monthly:      "Monthly",
+    chart_period_fmt:    "Cost per {period} (by model)",
+  },
+};
+let currentLang = localStorage.getItem("ccusage-lang") || "zh";
+const t = (key, vars) => {
+  let s = (I18N[currentLang] || I18N.zh)[key] || (I18N.zh[key] || key);
+  if (vars) for (const k in vars) s = s.replace(new RegExp(`\\{${k}\\}`, "g"), vars[k]);
+  return s;
+};
+function applyLanguage(lang) {
+  currentLang = (lang === "en") ? "en" : "zh";
+  localStorage.setItem("ccusage-lang", currentLang);
+  document.documentElement.setAttribute("lang", currentLang === "en" ? "en" : "zh");
+  // textContent
+  document.querySelectorAll("[data-i18n]").forEach(el => {
+    const k = el.getAttribute("data-i18n");
+    if (k) el.textContent = t(k);
+  });
+  // innerHTML (allows tags inside)
+  document.querySelectorAll("[data-i18n-html]").forEach(el => {
+    const k = el.getAttribute("data-i18n-html");
+    if (k) el.innerHTML = t(k);
+  });
+  // title attribute
+  document.querySelectorAll("[data-i18n-title]").forEach(el => {
+    const k = el.getAttribute("data-i18n-title");
+    if (k) { el.setAttribute("title", t(k)); el.setAttribute("aria-label", t(k)); }
+  });
+  // Segmented control: highlight active language
+  document.querySelectorAll(".lang-toggle button[data-lang]").forEach(b => {
+    b.classList.toggle("active", b.dataset.lang === currentLang);
+  });
+  // Re-render dynamic parts
+  if (typeof rerenderAll === "function") rerenderAll();
+}
 
 const COLORS = ["#c1502c", "#7a6a52", "#4b6c4f", "#8e7a9c", "#b89968", "#a85a52", "#5d7d8a", "#9a9484"];
 
@@ -583,8 +747,8 @@ function render(view) {
     }),
   }));
 
-  const periodLabel = { today: "今日", daily: "每日", weekly: "每周", monthly: "每月" }[view] || view;
-  document.getElementById("bar-title").textContent = `${periodLabel}花费（按模型）`;
+  const periodLabel = t({ today: "period_today", daily: "period_daily", weekly: "period_weekly", monthly: "period_monthly" }[view] || "period_today");
+  document.getElementById("bar-title").textContent = t("chart_period_fmt", { period: periodLabel });
 
   const cc = chartColors();
   if (barChart) barChart.destroy();
@@ -670,7 +834,8 @@ document.querySelectorAll(".tab").forEach(btn => {
 // initial state: Today is active by default, so disable the year selector
 yearSelect.disabled = true;
 
-document.getElementById("sub").textContent = "更新于 " + DATA.generatedAt + " · 数据来源：本地 Claude Code 日志 (~/.claude/projects)";
+function applySubText() { document.getElementById("sub").textContent = t("sub_generated", { time: DATA.generatedAt }); }
+applySubText();
 document.getElementById("footer-year").textContent = new Date().getFullYear();
 
 // Theme toggle
@@ -741,7 +906,7 @@ function renderSessionTable(scope) {
     const dt = formatBeijing(s.timestamp || s.date);
     const models = (s.models || []).map(m => `<span class="badge-model">${shortModel(m)}</span>`).join("");
     tr.innerHTML = `
-      <td><div class="title-cell" title="${(s.title || "").replace(/"/g, '&quot;')}">${s.title || "(无标题)"}</div></td>
+      <td><div class="title-cell" title="${(s.title || "").replace(/"/g, '&quot;')}">${s.title || t("no_title")}</div></td>
       <td class="date-cell">${dt || "—"}</td>
       <td class="num">${fmtUsd(s.costUSD)}</td>
       <td class="num">${fmtNum(s.totalTokens)}</td>
@@ -752,7 +917,7 @@ function renderSessionTable(scope) {
 
   if (total > SESSION_TABLE_LIMIT) {
     more.style.display = "block";
-    more.textContent = st.expanded ? "收起" : `查看全部（${total}）`;
+    more.textContent = st.expanded ? t("show_collapse") : `${t("show_all")}（${total}）`;
   } else {
     more.style.display = "none";
   }
@@ -888,9 +1053,9 @@ function formatChartLabel(view, raw) {
   // "2026-05-06" → "5/6"
   let m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw);
   if (m) return `${+m[2]}/${+m[3]}`;
-  // "2026-05" → "5月"
+  // "2026-05" → "5月" (zh) or "May" (en)
   m = /^(\d{4})-(\d{2})$/.exec(raw);
-  if (m) return `${+m[2]}月`;
+  if (m) return currentLang === "en" ? EN_MONTHS[(+m[2]) - 1] : `${+m[2]}月`;
   // "2026-W19" → "5/4" (Monday of that ISO week)
   m = /^(\d{4})-W(\d{2})$/.exec(raw);
   if (m) {
@@ -903,11 +1068,12 @@ function formatChartLabel(view, raw) {
     const mi = EN_MONTHS.indexOf(m[1]);
     return mi >= 0 ? `${mi + 1}/${+m[2]}` : raw;
   }
-  // "May 2026" → "5月"
+  // "May 2026" → "5月" (zh) or "May" (en)
   m = /^([A-Za-z]+)\s+\d{4}$/.exec(raw);
   if (m) {
     const mi = EN_MONTHS.indexOf(m[1]);
-    return mi >= 0 ? `${mi + 1}月` : m[1];
+    if (mi < 0) return m[1];
+    return currentLang === "en" ? EN_MONTHS[mi] : `${mi + 1}月`;
   }
   return raw;
 }
@@ -996,8 +1162,8 @@ function renderCodex(view) {
     data: rows.map(r => +modelCostInRow(r, m).toFixed(4)),
   }));
 
-  const periodLabel = { today: "今日", daily: "每日", weekly: "每周", monthly: "每月" }[view] || view;
-  document.getElementById("codex-bar-title").textContent = `${periodLabel}花费（按模型）`;
+  const periodLabel = t({ today: "period_today", daily: "period_daily", weekly: "period_weekly", monthly: "period_monthly" }[view] || "period_today");
+  document.getElementById("codex-bar-title").textContent = t("chart_period_fmt", { period: periodLabel });
 
   const cc = chartColors();
   if (codexBarChart) codexBarChart.destroy();
@@ -1153,6 +1319,21 @@ document.getElementById("theme-toggle").addEventListener("click", () => {
 renderCodex("today");
 renderCombined();
 wireDetailCard("codex");
+
+// ── Language wire-up ────────────────────────────────────────────
+function rerenderAll() {
+  applySubText();
+  render(currentView());
+  renderCodex(codexCurrentView());
+  renderCombined();
+  // Refresh detail tables (which may include translated headers / titles)
+  renderSessionTable("claude");
+  renderSessionTable("codex");
+}
+applyLanguage(currentLang); // initial apply (also re-renders)
+document.querySelectorAll(".lang-toggle button[data-lang]").forEach(btn => {
+  btn.addEventListener("click", () => applyLanguage(btn.dataset.lang));
+});
 </script>
 </body>
 </html>
