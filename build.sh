@@ -115,21 +115,98 @@ print(json.dumps(out))
 export GENERATED_AT=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
 if [[ -z "${USER_NAME:-}" ]]; then
-  USER_NAME="User"
-  if command -v claude >/dev/null 2>&1; then
-    AUTH_JSON=$(claude auth status --json 2>/dev/null || true)
-    if [[ -n "$AUTH_JSON" ]]; then
-      DETECTED=$(echo "$AUTH_JSON" | python3 -c 'import json, sys
-try:
-    d = json.load(sys.stdin)
-    e = (d.get("email") or "").split("@")[0]
-    print((e[:1].upper() + e[1:]) if e else "")
-except Exception:
-    print("")
-' 2>/dev/null || true)
-      [[ -n "$DETECTED" ]] && USER_NAME="$DETECTED"
-    fi
-  fi
+  USER_NAME="$(
+    python3 - <<'PY'
+import json
+import os
+import pwd
+import subprocess
+import sys
+
+
+def run_text(*args):
+    try:
+        proc = subprocess.run(args, capture_output=True, text=True, check=False)
+    except Exception:
+        return ""
+    return (proc.stdout or "").strip()
+
+
+def clean_name(value):
+    text = " ".join(str(value or "").strip().split())
+    if not text:
+        return ""
+    for bad in ("unknown", "user", "none", "null"):
+        if text.lower() == bad:
+            return ""
+    return text
+
+
+def title_from_email(email):
+    local = (email or "").split("@", 1)[0].strip()
+    if not local:
+        return ""
+    parts = [p for p in local.replace(".", " ").replace("_", " ").replace("-", " ").split() if p]
+    if not parts:
+        return ""
+    return " ".join(p[:1].upper() + p[1:] for p in parts)
+
+
+def claude_name():
+    try:
+        proc = subprocess.run(
+            ["claude", "auth", "status", "--json"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except Exception:
+        return ""
+    raw = (proc.stdout or "").strip()
+    if not raw:
+        return ""
+    try:
+        data = json.loads(raw)
+    except Exception:
+        return ""
+    for key in ("name", "fullName", "displayName", "userName"):
+        value = clean_name(data.get(key))
+        if value:
+            return value
+    email_name = title_from_email(data.get("email"))
+    if email_name:
+        return email_name
+    return ""
+
+
+def system_name():
+    for command in (("id", "-F"),):
+        value = clean_name(run_text(*command))
+        if value:
+            return value
+    try:
+        gecos = pwd.getpwuid(os.getuid()).pw_gecos.split(",", 1)[0]
+    except Exception:
+        gecos = ""
+    value = clean_name(gecos)
+    if value:
+        return value
+    return ""
+
+
+def git_name():
+    return clean_name(run_text("git", "config", "--global", "user.name"))
+
+
+for getter in (claude_name, system_name, git_name):
+    value = getter()
+    if value:
+        print(value)
+        sys.exit(0)
+
+print("User")
+PY
+  )"
 fi
 export USER_NAME
 
