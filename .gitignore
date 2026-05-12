@@ -7,3 +7,6 @@ index.html
 package-lock.json
 yarn.lock
 lukemei-ai-usage-dashboard-*.tgz
+.playwright-mcp/
+__pycache__/
+*.pyc
