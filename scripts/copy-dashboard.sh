@@ -2,7 +2,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-DEST="${HOME}/.claude/dashboard"
+DEST="${AI_USAGE_DASHBOARD_HOME:-${HOME}/.ai-usage-dashboard}"
 mkdir -p "$DEST"
 
 cp "${SCRIPT_DIR}/build.sh"      "$DEST/build.sh"

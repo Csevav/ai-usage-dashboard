@@ -327,7 +327,7 @@
   <div class="section-title">Claude Code</div>
 
   <div class="tabs-row">
-    <div class="tabs">
+    <div class="tabs" id="claude-tabs">
       <button class="tab active" data-view="today" data-i18n="tab_today">今日</button>
       <button class="tab" data-view="daily" data-i18n="tab_daily">按天</button>
       <button class="tab" data-view="weekly" data-i18n="tab_weekly">按周</button>
@@ -471,6 +471,14 @@
   </div>
 
   <div class="section-title combined" data-i18n="section_combined">综合对比</div>
+  <div class="tabs-row">
+    <div class="tabs" id="combined-tabs">
+      <button class="tab active" data-view="daily" data-i18n="tab_daily">按天</button>
+      <button class="tab" data-view="weekly" data-i18n="tab_weekly">按周</button>
+      <button class="tab" data-view="monthly" data-i18n="tab_monthly">按月</button>
+    </div>
+    <select id="combined-year-select" class="year-select" data-i18n-title="year_filter" title="按年份筛选"></select>
+  </div>
   <div class="combined-kpis">
     <div class="kpi"><div class="label" data-i18n="cmp_claude">Claude 总花费</div><div class="value" id="cmp-claude">—</div></div>
     <div class="kpi codex-hi"><div class="label" data-i18n="cmp_codex">Codex 总花费</div><div class="value" id="cmp-codex">—</div></div>
@@ -543,6 +551,7 @@ const I18N = {
     period_weekly:       "每周",
     period_monthly:      "每月",
     chart_period_fmt:    "{period}花费（按模型）",
+    chart_combined_fmt:  "{period}花费对比 — Claude vs Codex",
   },
   en: {
     title:               "Usage Dashboard",
@@ -594,6 +603,7 @@ const I18N = {
     period_weekly:       "Weekly",
     period_monthly:      "Monthly",
     chart_period_fmt:    "Cost per {period} (by model)",
+    chart_combined_fmt:  "{period} cost — Claude vs Codex",
   },
 };
 let currentLang = localStorage.getItem("ccusage-lang") || "zh";
@@ -837,7 +847,7 @@ yearSelect.innerHTML = YEARS.map(y => `<option value="${y}"${y === selectedYear 
   || `<option value="${selectedYear}" selected>${selectedYear}</option>`;
 
 function currentView() {
-  const active = document.querySelector(".tab.active");
+  const active = document.querySelector("#claude-tabs .tab.active");
   return active ? active.dataset.view : "today";
 }
 
@@ -846,9 +856,9 @@ yearSelect.addEventListener("change", () => {
   render(currentView());
 });
 
-document.querySelectorAll(".tab").forEach(btn => {
+document.querySelectorAll("#claude-tabs .tab").forEach(btn => {
   btn.addEventListener("click", () => {
-    document.querySelectorAll(".tab").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll("#claude-tabs .tab").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
     yearSelect.disabled = btn.dataset.view === "today";
     render(btn.dataset.view);
@@ -1106,6 +1116,36 @@ function formatChartLabel(view, raw) {
   return raw;
 }
 
+function normalizeMonthKey(raw) {
+  if (!raw) return "";
+  const direct = /^(\d{4})-(\d{2})$/.exec(raw);
+  if (direct) return `${direct[1]}-${direct[2]}`;
+  const parsed = new Date(raw);
+  if (!isNaN(parsed)) {
+    return `${parsed.getFullYear()}-${pad2(parsed.getMonth() + 1)}`;
+  }
+  const monthName = /^([A-Za-z]+)\s+(\d{4})$/.exec(raw);
+  if (monthName) {
+    const monthIndex = EN_MONTHS.indexOf(monthName[1]);
+    if (monthIndex >= 0) return `${monthName[2]}-${pad2(monthIndex + 1)}`;
+  }
+  return raw;
+}
+
+function normalizePeriodKey(view, raw) {
+  if (!raw) return "";
+  if (view === "monthly") return normalizeMonthKey(raw);
+  if (view === "daily") {
+    const direct = /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw);
+    if (direct) return raw;
+    const parsed = new Date(raw);
+    if (!isNaN(parsed)) {
+      return `${parsed.getFullYear()}-${pad2(parsed.getMonth() + 1)}-${pad2(parsed.getDate())}`;
+    }
+  }
+  return raw;
+}
+
 const CODEX_COLORS = ["#2a5d8f", "#5d7d8a", "#7a6a52", "#4b6c4f", "#8e7a9c", "#a85a52", "#b89968", "#9a9484"];
 
 const CODEX_MODEL_COLOR = (() => {
@@ -1256,27 +1296,45 @@ function renderCodex(view) {
 }
 
 function renderCombined() {
-  // Merge monthly data by month label
-  const claudeByMonth = new Map((DATA.monthly || []).map(r => [r.month, r.totalCost || 0]));
-  const codexByMonth  = new Map((CODEX.monthly || []).map(r => [r.month, r.costUSD || 0]));
-  const allMonths = [...new Set([...claudeByMonth.keys(), ...codexByMonth.keys()])].sort();
+  const view = combinedCurrentView();
+  const year = combinedSelectedYear;
+  const claudeRows = view === "today" ? rowsForView("today") : (DATA[view] || []).filter(row => {
+    const raw = row[KEY_BY_VIEW[view]];
+    const key = normalizePeriodKey(view, raw);
+    return key.startsWith(year + "-");
+  });
+  const codexRows = view === "today" ? codexRowsForView("today") : (CODEX[view] || []).filter(row => {
+    const raw = row.date || row.week || row.month || "";
+    const key = normalizePeriodKey(view, view === "daily" ? codexDateKey(row) : raw);
+    return key.startsWith(year + "-");
+  });
 
-  const claudeTotalAll = [...claudeByMonth.values()].reduce((a, b) => a + b, 0);
-  const codexTotalAll  = [...codexByMonth.values()].reduce((a, b) => a + b, 0);
-  const barLayout = barLayoutForCount(allMonths.length);
-  document.getElementById("cmp-claude").textContent = fmtUsd(claudeTotalAll);
-  document.getElementById("cmp-codex").textContent  = fmtUsd(codexTotalAll);
-  document.getElementById("cmp-total").textContent  = fmtUsd(claudeTotalAll + codexTotalAll);
+  const claudeMap = new Map(claudeRows.map(row => [normalizePeriodKey(view, row[KEY_BY_VIEW[view]]), row.totalCost || 0]));
+  const codexMap = new Map(codexRows.map(row => {
+    const raw = view === "daily" ? codexDateKey(row) : (row.date || row.week || row.month || "");
+    return [normalizePeriodKey(view, raw), row.costUSD || 0];
+  }));
+
+  const allKeys = [...new Set([...claudeMap.keys(), ...codexMap.keys()])].sort();
+  const labels = allKeys.map(key => formatChartLabel(view, key));
+  const claudeTotal = [...claudeMap.values()].reduce((a, b) => a + b, 0);
+  const codexTotal = [...codexMap.values()].reduce((a, b) => a + b, 0);
+  const barLayout = barLayoutForCount(allKeys.length);
+  const periodLabel = t({ today: "period_today", daily: "period_daily", weekly: "period_weekly", monthly: "period_monthly" }[view] || "period_daily");
+  document.getElementById("cmp-claude").textContent = fmtUsd(claudeTotal);
+  document.getElementById("cmp-codex").textContent  = fmtUsd(codexTotal);
+  document.getElementById("cmp-total").textContent  = fmtUsd(claudeTotal + codexTotal);
+  document.querySelector("[data-i18n='chart_combined']").textContent = t("chart_combined_fmt", { period: periodLabel });
 
   const cc = chartColors();
   if (combinedBarChart) combinedBarChart.destroy();
   combinedBarChart = new Chart(document.getElementById("combined-bar"), {
     type: "bar",
     data: {
-      labels: allMonths,
+      labels,
       datasets: [
-        { label: "Claude Code", backgroundColor: "#d97757", ...barLayout, data: allMonths.map(m => +(claudeByMonth.get(m) || 0).toFixed(4)) },
-        { label: "Codex",       backgroundColor: "#5b9dd9", ...barLayout, data: allMonths.map(m => +(codexByMonth.get(m)  || 0).toFixed(4)) },
+        { label: "Claude Code", backgroundColor: "#d97757", ...barLayout, data: allKeys.map(key => +(claudeMap.get(key) || 0).toFixed(4)) },
+        { label: "Codex",       backgroundColor: "#5b9dd9", ...barLayout, data: allKeys.map(key => +(codexMap.get(key)  || 0).toFixed(4)) },
       ],
     },
     options: {
@@ -1291,6 +1349,34 @@ function renderCombined() {
       },
     },
   });
+}
+
+// Combined compare controls
+const combinedYearSelect = document.getElementById("combined-year-select");
+const COMBINED_YEARS = (() => {
+  const years = new Set();
+  for (const y of YEARS) years.add(y);
+  for (const row of (CODEX.daily || [])) {
+    const key = normalizePeriodKey("daily", codexDateKey(row));
+    if (key) years.add(key.slice(0, 4));
+  }
+  for (const row of (CODEX.weekly || [])) {
+    const key = normalizePeriodKey("weekly", row.week || "");
+    if (key) years.add(key.slice(0, 4));
+  }
+  for (const row of (CODEX.monthly || [])) {
+    const key = normalizePeriodKey("monthly", row.month || "");
+    if (key) years.add(key.slice(0, 4));
+  }
+  return [...years].sort((a, b) => b.localeCompare(a));
+})();
+let combinedSelectedYear = COMBINED_YEARS.includes(currentYear) ? currentYear : (COMBINED_YEARS[0] || currentYear);
+combinedYearSelect.innerHTML = COMBINED_YEARS.map(y => `<option value="${y}"${y === combinedSelectedYear ? " selected" : ""}>${y}</option>`).join("")
+  || `<option value="${combinedSelectedYear}" selected>${combinedSelectedYear}</option>`;
+
+function combinedCurrentView() {
+  const active = document.querySelector("#combined-tabs .tab.active");
+  return active ? active.dataset.view : "daily";
 }
 
 // Codex year select
@@ -1325,12 +1411,27 @@ codexYearSelect.addEventListener("change", () => {
   renderCodex(codexCurrentView());
 });
 
+document.querySelectorAll("#combined-tabs .tab").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll("#combined-tabs .tab").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    combinedYearSelect.disabled = btn.dataset.view === "today";
+    renderCombined();
+  });
+});
+
+combinedYearSelect.addEventListener("change", () => {
+  combinedSelectedYear = combinedYearSelect.value;
+  renderCombined();
+});
+
 document.getElementById("theme-toggle").addEventListener("click", () => {
   renderCodex(codexCurrentView());
   renderCombined();
 });
 
 renderCodex("today");
+combinedYearSelect.disabled = combinedCurrentView() === "today";
 renderCombined();
 wireDetailCard("codex");
 

@@ -1,8 +1,8 @@
 # @csevav/ai-usage-dashboard
 
-> 一个可视化的 **Claude Code + OpenAI Codex** 用量看板。基于 [`ccusage`](https://www.npmjs.com/package/ccusage) 增强，新增 Codex 数据、按对话排行、中文界面、北京时间等功能。
+> 一个可视化的 **Claude Code + OpenAI Codex** 用量看板。基于 [`ccusage`](https://www.npmjs.com/package/ccusage) 增强，新增 Codex 数据、按对话排行、中文界面、北京时间等功能。当前主要支持 **Codex** 和 **Claude Code**。
 >
-> A visual usage dashboard for **Claude Code + OpenAI Codex** — built on top of [`ccusage`](https://www.npmjs.com/package/ccusage), with Codex support, per-conversation ranking, Chinese UI, Beijing time.
+> A visual usage dashboard for **Claude Code + OpenAI Codex** — built on top of [`ccusage`](https://www.npmjs.com/package/ccusage), with Codex support, per-conversation ranking, Chinese UI, Beijing time. It currently targets **Codex** and **Claude Code** workflows.
 
 ![status: WIP](https://img.shields.io/badge/status-WIP-orange) ![license: MIT](https://img.shields.io/badge/license-MIT-blue)
 
@@ -33,24 +33,26 @@ npm install -g @csevav/ai-usage-dashboard
 
 安装后会自动：
 
-1. 把模板和构建脚本拷到 `~/.claude/dashboard/`
-2. 在 `~/.claude/commands/` 创建 `ai-usage.md` slash command
+1. 把模板和构建脚本拷到 `~/.ai-usage-dashboard/`
+2. 在 `~/.claude/commands/` 创建 `ai-usage.md`，作为 Claude Code 的快捷集成
 
 ## 🚀 使用 / Usage
 
-在任意 Claude Code 会话里输入：
+推荐用法：在 **Codex** 或终端里直接运行：
+
+```bash
+bash ~/.ai-usage-dashboard/build.sh
+```
+
+这是面向 **Codex / shell workflow** 的直接入口。
+
+如果你在用 **Claude Code**，也可以直接输入：
 
 ```
 /ai-usage
 ```
 
 会自动构建并在浏览器打开看板。
-
-也可以直接命令行运行：
-
-```bash
-bash ~/.claude/dashboard/build.sh
-```
 
 支持参数：
 - `--no-open` — 只生成 HTML，不自动打开浏览器
@@ -66,6 +68,8 @@ bash ~/.claude/dashboard/build.sh
   - [`@ccusage/codex`](https://www.npmjs.com/package/@ccusage/codex) — Codex 用量数据来源
 
 `build.sh` 会自动通过 `npx --yes` 调用上述包，无需额外安装。
+
+> 当前这份包主要面向两种使用方式：**Codex 里直接运行 shell 命令**，以及 **Claude Code 里的 slash command 集成**。
 
 ## 🗂 数据来源 / Data sources
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-DIR="${HOME}/.claude/dashboard"
+DIR="${AI_USAGE_DASHBOARD_HOME:-${HOME}/.ai-usage-dashboard}"
 OUT="${DIR}/index.html"
 TEMPLATE="${DIR}/template.html"
 
@@ -21,7 +21,7 @@ done
 
 if [[ ! -f "$TEMPLATE" ]]; then
   echo "Template not found: $TEMPLATE" >&2
-  echo "Run the installer first so ~/.claude/dashboard is populated." >&2
+  echo "Run the installer first so ${DIR} is populated." >&2
   exit 1
 fi
 
