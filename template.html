@@ -484,7 +484,7 @@
   <footer class="footer">
     <span><a href="https://github.com/Csevav/ai-usage-dashboard" target="_blank" rel="noopener">GitHub</a> &middot; <a href="https://www.npmjs.com/package/@csevav/ai-usage-dashboard" target="_blank" rel="noopener">npm</a></span>
     <span>&copy; <span id="footer-year"></span> <span data-i18n="footer_brand">Claude 用量看板</span></span>
-    <span data-i18n-html="footer_built">由 <a href="https://claude.com" target="_blank" rel="noopener">Claude</a> 打造 &middot; 数据来源：本地 Claude Code 日志</span>
+    <span data-i18n-html="footer_built">由 <a href="https://github.com/Csevav" target="_blank" rel="noopener">Luke Mei</a> 打造 &middot; 数据来源：本地 Claude Code 日志</span>
   </footer>
 </div>
 
@@ -536,7 +536,7 @@ const I18N = {
     show_collapse:       "收起",
     no_title:            "(无标题)",
     footer_brand:        "Claude 用量看板",
-    footer_built:        '由 <a href="https://claude.com" target="_blank" rel="noopener">Claude</a> 打造 · 数据来源：本地 Claude Code 日志',
+    footer_built:        '由 <a href="https://github.com/Csevav" target="_blank" rel="noopener">Luke Mei</a> 打造 · 数据来源：本地 Claude Code 日志',
     sub_generated:       "更新于 {time} · 数据来源：本地 Claude Code 日志 (~/.claude/projects)",
     period_today:        "今日",
     period_daily:        "每日",
@@ -587,7 +587,7 @@ const I18N = {
     show_collapse:       "Collapse",
     no_title:            "(untitled)",
     footer_brand:        "AI Usage Dashboard",
-    footer_built:        'Built with <a href="https://claude.com" target="_blank" rel="noopener">Claude</a> · Data: local Claude Code logs',
+    footer_built:        'Built by <a href="https://github.com/Csevav" target="_blank" rel="noopener">Luke Mei</a> · Data: local Claude Code logs',
     sub_generated:       "Generated at {time} · data from local Claude logs (~/.claude/projects)",
     period_today:        "Today",
     period_daily:        "Daily",
@@ -651,7 +651,13 @@ function sessionCostStats(sessions, view, year) {
 }
 const fmtUsd = n => "$" + (n || 0).toFixed(2);
 const fmtNum = n => (n || 0).toLocaleString("en-US");
-const shortModel = m => m.replace(/^claude-/, "").replace(/-\d{8}$/, "");
+const shortModel = m => String(m || "").replace(/^claude-/, "").replace(/-\d{8}$/, "");
+const escapeHtml = value => String(value || "")
+  .replace(/&/g, "&amp;")
+  .replace(/</g, "&lt;")
+  .replace(/>/g, "&gt;")
+  .replace(/"/g, "&quot;")
+  .replace(/'/g, "&#39;");
 
 function chartColors() {
   const dark = document.documentElement.getAttribute("data-theme") === "dark";
@@ -695,6 +701,14 @@ function rowsForView(view) {
   return rows.filter(r => (r[key] || "").startsWith(selectedYear + "-"));
 }
 
+function selectedYearForScope(scope) {
+  return scope === "codex" ? codexSelectedYear : selectedYear;
+}
+
+function activeViewForScope(scope) {
+  return scope === "codex" ? codexCurrentView() : currentView();
+}
+
 function collectYears() {
   const ys = new Set();
   for (const view of ["daily", "weekly", "monthly"]) {
@@ -729,9 +743,9 @@ function render(view) {
   document.getElementById("kpi-cost").textContent    = fmtUsd(totalCost);
   document.getElementById("kpi-tokens").textContent  = fmtNum(totalTokens);
   document.getElementById("kpi-cache").textContent   = fmtNum(cacheRead);
-  document.getElementById("kpi-periods").textContent = countSessions(DATA.sessions, view);
+  document.getElementById("kpi-periods").textContent = countSessions(DATA.sessions, view, selectedYear);
 
-  const stats = sessionCostStats(DATA.sessions, view);
+  const stats = sessionCostStats(DATA.sessions, view, selectedYear);
   document.getElementById("kpi-min").textContent = fmtUsd(stats.min);
   document.getElementById("kpi-avg").textContent = fmtUsd(stats.avg);
   document.getElementById("kpi-max").textContent = fmtUsd(stats.max);
@@ -795,14 +809,15 @@ function render(view) {
   tbody.innerHTML = "";
   [...rows].reverse().forEach(r => {
     const tr = document.createElement("tr");
+    const modelsUsed = (r.modelsUsed || []).map(shortModel).map(escapeHtml).join(", ");
     tr.innerHTML = `
-      <td>${r[keyField]}</td>
+      <td>${escapeHtml(r[keyField] || "")}</td>
       <td class="num">${fmtUsd(r.totalCost)}</td>
       <td class="num">${fmtNum(r.inputTokens)}</td>
       <td class="num">${fmtNum(r.outputTokens)}</td>
       <td class="num">${fmtNum(r.cacheCreationTokens)}</td>
       <td class="num">${fmtNum(r.cacheReadTokens)}</td>
-      <td>${(r.modelsUsed || []).map(shortModel).join(", ")}</td>
+      <td>${modelsUsed}</td>
     `;
     tbody.appendChild(tr);
   });
@@ -876,6 +891,9 @@ function renderSessionTable(scope) {
   const tbody = tbl.querySelector("tbody");
   const thead = tbl.querySelector("thead");
   const more  = document.getElementById(cfg.moreId);
+  const view = activeViewForScope(scope);
+  const year = selectedYearForScope(scope);
+  const scopedSessions = sessionsForView(cfg.sessions, view, year);
 
   // Update sort indicator on headers
   thead.querySelectorAll("th[data-sort]").forEach(th => {
@@ -890,7 +908,7 @@ function renderSessionTable(scope) {
     tokens: s => s.totalTokens || 0,
   };
   const get = keyOf[st.sort] || keyOf.cost;
-  const sorted = [...cfg.sessions].sort((a, b) => {
+  const sorted = [...scopedSessions].sort((a, b) => {
     const va = get(a), vb = get(b);
     if (va < vb) return st.dir === "asc" ? -1 : 1;
     if (va > vb) return st.dir === "asc" ?  1 : -1;
@@ -904,9 +922,10 @@ function renderSessionTable(scope) {
   visible.forEach(s => {
     const tr = document.createElement("tr");
     const dt = formatBeijing(s.timestamp || s.date);
-    const models = (s.models || []).map(m => `<span class="badge-model">${shortModel(m)}</span>`).join("");
+    const title = s.title || t("no_title");
+    const models = (s.models || []).map(m => `<span class="badge-model">${escapeHtml(shortModel(m))}</span>`).join("");
     tr.innerHTML = `
-      <td><div class="title-cell" title="${(s.title || "").replace(/"/g, '&quot;')}">${s.title || t("no_title")}</div></td>
+      <td><div class="title-cell" title="${escapeHtml(title)}">${escapeHtml(title)}</div></td>
       <td class="date-cell">${dt || "—"}</td>
       <td class="num">${fmtUsd(s.costUSD)}</td>
       <td class="num">${fmtNum(s.totalTokens)}</td>
@@ -1119,7 +1138,7 @@ function codexRowsForView(view) {
     // filter by selected year
     rows = rows.filter(r => {
       const k = codexDateKey(r);
-      return k.includes(selectedYear) || k.startsWith(selectedYear);
+      return k.includes(codexSelectedYear) || k.startsWith(codexSelectedYear);
     });
   }
   return rows;
@@ -1210,10 +1229,10 @@ function renderCodex(view) {
   const tbody = document.querySelector("#codex-tbl tbody");
   tbody.innerHTML = "";
   [...rows].reverse().forEach(r => {
-    const models = Object.keys(r.models || {}).join(", ");
+    const models = Object.keys(r.models || {}).map(escapeHtml).join(", ");
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${r.date || r.week || r.month || ""}</td>
+      <td>${escapeHtml(r.date || r.week || r.month || "")}</td>
       <td class="num">${fmtUsd(r.costUSD)}</td>
       <td class="num">${fmtNum(r.inputTokens)}</td>
       <td class="num">${fmtNum(r.outputTokens)}</td>
@@ -1279,23 +1298,6 @@ function codexCurrentView() {
   const active = document.querySelector("#codex-tabs .tab.active");
   return active ? active.dataset.view : "today";
 }
-
-// Override codexRowsForView to use codexSelectedYear
-const _origCodexRowsForView = codexRowsForView;
-codexRowsForView = function(view) {
-  let rows;
-  if (view === "today") {
-    const t = todayStr();
-    rows = (CODEX.daily || []).filter(r => codexDateKey(r) === t);
-  } else {
-    rows = CODEX[view] || [];
-    rows = rows.filter(r => {
-      const k = codexDateKey(r);
-      return k.includes(codexSelectedYear) || k.startsWith(codexSelectedYear);
-    });
-  }
-  return rows;
-};
 
 document.querySelectorAll("#codex-tabs .tab").forEach(btn => {
   btn.addEventListener("click", () => {

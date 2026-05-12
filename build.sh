@@ -11,8 +11,19 @@ for arg in "$@"; do
   case "$arg" in
     --no-open)    NO_OPEN=1 ;;
     --no-summary) NO_SUMMARY=1 ;;
+    *)
+      echo "Unknown option: $arg" >&2
+      echo "Usage: $0 [--no-open] [--no-summary]" >&2
+      exit 1
+      ;;
   esac
 done
+
+if [[ ! -f "$TEMPLATE" ]]; then
+  echo "Template not found: $TEMPLATE" >&2
+  echo "Run the installer first so ~/.claude/dashboard is populated." >&2
+  exit 1
+fi
 
 export DAILY=$(npx --yes ccusage daily --json --breakdown)
 export WEEKLY=$(npx --yes ccusage weekly --json --breakdown)
@@ -123,6 +134,7 @@ fi
 export USER_NAME
 
 python3 - "$TEMPLATE" "$OUT" <<'PY' >/dev/null
+import html as html_lib
 import json, sys, os
 template_path, out_path = sys.argv[1], sys.argv[2]
 
@@ -162,15 +174,28 @@ def codex_title(s):
                     continue
                 p = e.get("payload") or {}
                 if e.get("type") != "response_item": continue
-                if p.get("type") != "message" or p.get("role") not in ("user", "developer"): continue
+                if p.get("type") != "message" or p.get("role") != "user": continue
                 for c in (p.get("content") or []):
                     t = c.get("text") or ""
                     if not t: continue
-                    # skip env/system XML wrappers and AGENTS.md preambles
                     stripped = t.strip()
                     if stripped.startswith("<") or stripped.startswith("# AGENTS.md"):
                         continue
+                    if stripped.startswith("# .pen ") or stripped.startswith("## Memory"):
+                        continue
+                    if stripped.startswith("# Files mentioned"):
+                        continue
                     first = stripped.split("\n", 1)[0].strip()
+                    if not first: continue
+                    if first.startswith("[$") and "SKILL.md" in first:
+                        continue
+                    # shorten long URLs to domain + path hint
+                    if first.startswith("http://") or first.startswith("https://"):
+                        import re as _re
+                        m = _re.match(r"https?://(?:www\.)?([^/]+)(/[^?#]*)?", first)
+                        if m:
+                            first = m.group(1) + (m.group(2) or "")
+                            if len(first) > 50: first = first[:47] + "..."
                     if first:
                         title = first[:80]
                         break
@@ -180,19 +205,40 @@ def codex_title(s):
     _codex_title_cache[fn] = title
     return title
 
-d = json.loads(os.environ["DAILY"])
-w = json.loads(os.environ["WEEKLY"])
-m = json.loads(os.environ["MONTHLY"])
+def load_env_json(name, default):
+    raw = os.environ.get(name, "")
+    try:
+        return json.loads(raw)
+    except Exception:
+        return default
+
+def dump_json_for_script(value):
+    return (
+        json.dumps(value, ensure_ascii=False)
+        .replace("&", "\\u0026")
+        .replace("<", "\\u003c")
+        .replace(">", "\\u003e")
+        .replace("</", "<\\/")
+    )
+
+d = load_env_json("DAILY", {"daily": []})
+w = load_env_json("WEEKLY", {"weekly": []})
+m = load_env_json("MONTHLY", {"monthly": []})
+claude_sessions = load_env_json("CLAUDE_SESSIONS", [])
+codex_daily = load_env_json("CODEX_DAILY", {"daily": []})
+codex_weekly = load_env_json("CODEX_WEEKLY", {"weekly": []})
+codex_monthly = load_env_json("CODEX_MONTHLY", {"monthly": []})
+codex_sessions = load_env_json("CODEX_SESSIONS", {"sessions": []})
 payload = {
     "daily":   d.get("daily", []),
     "weekly":  w.get("weekly", []),
     "monthly": m.get("monthly", []),
     "totals":  m.get("totals", {}),
-    "sessions": json.loads(os.environ["CLAUDE_SESSIONS"]),
+    "sessions": claude_sessions,
     "codex": {
-        "daily":   json.loads(os.environ["CODEX_DAILY"]).get("daily", []),
-        "weekly":  json.loads(os.environ["CODEX_WEEKLY"]).get("weekly", []),
-        "monthly": json.loads(os.environ["CODEX_MONTHLY"]).get("monthly", []),
+        "daily":   codex_daily.get("daily", []),
+        "weekly":  codex_weekly.get("weekly", []),
+        "monthly": codex_monthly.get("monthly", []),
         "sessions": [
             {
                 "sessionId": s.get("sessionId"),
@@ -203,15 +249,15 @@ payload = {
                 "totalTokens": s.get("totalTokens") or 0,
                 "models": sorted(list((s.get("models") or {}).keys())),
             }
-            for s in json.loads(os.environ["CODEX_SESSIONS"]).get("sessions", [])
+            for s in codex_sessions.get("sessions", [])
         ],
     },
     "generatedAt": os.environ["GENERATED_AT"],
 }
 with open(template_path, "r", encoding="utf-8") as f:
     html = f.read()
-html = html.replace("__DATA__", json.dumps(payload))
-html = html.replace("__USER_NAME__", os.environ.get("USER_NAME", "User"))
+html = html.replace("__DATA__", dump_json_for_script(payload))
+html = html.replace("__USER_NAME__", html_lib.escape(os.environ.get("USER_NAME", "User")))
 with open(out_path, "w", encoding="utf-8") as f:
     f.write(html)
 PY
@@ -283,5 +329,9 @@ if [[ "${TERM_PROGRAM:-}" == "vscode" ]]; then
 fi
 
 if [[ "$NO_OPEN" -eq 0 ]]; then
-  open "$OUT"
+  if command -v open >/dev/null 2>&1; then
+    open "$OUT"
+  else
+    echo "Open skipped: no 'open' command found. File is ready at ${OUT}"
+  fi
 fi
