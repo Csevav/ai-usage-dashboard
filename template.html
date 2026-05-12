@@ -669,6 +669,13 @@ function chartColors() {
   };
 }
 
+function barLayoutForCount(count) {
+  if (count <= 1) return { maxBarThickness: 160, categoryPercentage: 0.42, barPercentage: 0.9 };
+  if (count === 2) return { maxBarThickness: 108, categoryPercentage: 0.5, barPercentage: 0.88 };
+  if (count <= 4) return { maxBarThickness: 72, categoryPercentage: 0.62, barPercentage: 0.86 };
+  return { maxBarThickness: 56, categoryPercentage: 0.78, barPercentage: 0.9 };
+}
+
 const KEY_BY_VIEW = { today: "date", daily: "date", weekly: "week", monthly: "month" };
 const todayStr = () => new Date().toLocaleDateString("sv-SE"); // YYYY-MM-DD local
 let barChart, doughnutChart;
@@ -752,9 +759,11 @@ function render(view) {
 
   const allModels = [...new Set(rows.flatMap(r => (r.modelBreakdowns || []).map(b => b.modelName)))];
   const labels = rows.map(r => formatChartLabel(view, r[keyField]));
+  const barLayout = barLayoutForCount(labels.length);
   const datasets = allModels.map(m => ({
     label: shortModel(m),
     backgroundColor: colorFor(m),
+    ...barLayout,
     data: rows.map(r => {
       const b = (r.modelBreakdowns || []).find(x => x.modelName === m);
       return b ? +b.cost.toFixed(4) : 0;
@@ -1175,9 +1184,11 @@ function renderCodex(view) {
 
   const allModels = [...new Set(rows.flatMap(r => Object.keys(r.models || {})))];
   const labels = rows.map(r => formatChartLabel(view, r.date || r.week || r.month || ""));
+  const barLayout = barLayoutForCount(labels.length);
   const datasets = allModels.map(m => ({
     label: m,
     backgroundColor: codexColorFor(m),
+    ...barLayout,
     data: rows.map(r => +modelCostInRow(r, m).toFixed(4)),
   }));
 
@@ -1252,6 +1263,7 @@ function renderCombined() {
 
   const claudeTotalAll = [...claudeByMonth.values()].reduce((a, b) => a + b, 0);
   const codexTotalAll  = [...codexByMonth.values()].reduce((a, b) => a + b, 0);
+  const barLayout = barLayoutForCount(allMonths.length);
   document.getElementById("cmp-claude").textContent = fmtUsd(claudeTotalAll);
   document.getElementById("cmp-codex").textContent  = fmtUsd(codexTotalAll);
   document.getElementById("cmp-total").textContent  = fmtUsd(claudeTotalAll + codexTotalAll);
@@ -1263,8 +1275,8 @@ function renderCombined() {
     data: {
       labels: allMonths,
       datasets: [
-        { label: "Claude Code", backgroundColor: "#d97757", data: allMonths.map(m => +(claudeByMonth.get(m) || 0).toFixed(4)) },
-        { label: "Codex",       backgroundColor: "#5b9dd9", data: allMonths.map(m => +(codexByMonth.get(m)  || 0).toFixed(4)) },
+        { label: "Claude Code", backgroundColor: "#d97757", ...barLayout, data: allMonths.map(m => +(claudeByMonth.get(m) || 0).toFixed(4)) },
+        { label: "Codex",       backgroundColor: "#5b9dd9", ...barLayout, data: allMonths.map(m => +(codexByMonth.get(m)  || 0).toFixed(4)) },
       ],
     },
     options: {
