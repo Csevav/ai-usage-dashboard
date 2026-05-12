@@ -1,0 +1,1158 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>__USER_NAME__ · Claude 用量看板</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* Clean, premium dashboard — light by default */
+    --bg:          #f7f6f3;      /* soft warm canvas */
+    --surface:     #ffffff;      /* card surface */
+    --surface-2:   #fafaf9;      /* hover / subtle row */
+    --ink:         #15171a;      /* primary text */
+    --ink-2:       #3a3f47;      /* secondary text */
+    --muted:       #6b7280;      /* tertiary text / labels */
+    --border:      #ececea;      /* hairline */
+    --border-2:    #d8d6d1;      /* stronger hairline */
+    --accent:      #c1502c;      /* Claude warm orange */
+    --accent-soft: rgba(193, 80, 44, 0.08);
+    --codex:       #2563a5;      /* Codex deep blue */
+    --codex-soft:  rgba(37, 99, 165, 0.07);
+    --shadow-sm:   0 1px 2px rgba(15, 17, 26, 0.04);
+    --shadow:      0 1px 3px rgba(15, 17, 26, 0.04), 0 4px 14px -8px rgba(15, 17, 26, 0.08);
+    --shadow-lg:   0 1px 3px rgba(15, 17, 26, 0.05), 0 12px 32px -16px rgba(15, 17, 26, 0.12);
+    --radius:      12px;
+    --radius-sm:   8px;
+    --sans:        "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    --mono:        "JetBrains Mono", ui-monospace, "SF Mono", monospace;
+  }
+  [data-theme="dark"] {
+    --bg:          #0e1014;
+    --surface:     #16191e;
+    --surface-2:   #1c2026;
+    --ink:         #f1f3f5;
+    --ink-2:       #c8ccd2;
+    --muted:       #8a92a0;
+    --border:      #23272f;
+    --border-2:    #2f343d;
+    --accent:      #e07a4f;
+    --accent-soft: rgba(224, 122, 79, 0.12);
+    --codex:       #6ea3d3;
+    --codex-soft:  rgba(110, 163, 211, 0.12);
+    --shadow:      0 1px 3px rgba(0,0,0,0.4), 0 8px 24px -12px rgba(0,0,0,0.4);
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    color: var(--ink);
+    background: var(--bg);
+    font: 14px/1.55 var(--sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    min-height: 100vh;
+  }
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 36px 32px 48px; }
+
+  /* ─── Header ───────────────────────────────────────────── */
+  .header-row {
+    display: flex; align-items: center; gap: 16px;
+    justify-content: space-between; margin-bottom: 6px;
+  }
+  h1 {
+    margin: 0;
+    font-size: 22px; font-weight: 600;
+    letter-spacing: -0.015em; color: var(--ink);
+  }
+  .sub { color: var(--muted); margin: 6px 0 28px; font-size: 12.5px; }
+  .theme-toggle {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; cursor: pointer; padding: 8px 10px;
+    color: var(--muted); display: flex; align-items: center;
+    line-height: 1; box-shadow: var(--shadow-sm);
+    transition: all .18s ease;
+  }
+  .theme-toggle:hover { color: var(--ink); border-color: var(--border-2); }
+
+  /* ─── Section title ────────────────────────────────────── */
+  .section-title {
+    font-size: 13px; font-weight: 600; letter-spacing: -0.005em;
+    color: var(--ink); margin: 32px 0 14px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-title::before {
+    content: ""; width: 8px; height: 8px; border-radius: 50%;
+    background: var(--accent);
+  }
+  .section-title.codex::before    { background: var(--codex); }
+  .section-title.combined::before { background: linear-gradient(135deg, var(--accent), var(--codex)); }
+  .section-title em {
+    font-style: normal; color: var(--muted); font-weight: 400;
+    font-size: 12px; margin-left: 6px;
+  }
+
+  /* ─── KPI Cards ────────────────────────────────────────── */
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 12px; }
+  .kpis-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+  .combined-kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+
+  .kpi {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    display: flex; flex-direction: column; gap: 6px;
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow .18s ease, transform .18s ease;
+  }
+  .kpi:hover { box-shadow: var(--shadow); transform: translateY(-1px); }
+  .kpi .label {
+    color: var(--muted); font-size: 11.5px; font-weight: 500;
+    letter-spacing: 0;
+  }
+  .kpi .value {
+    font-size: 24px; font-weight: 600;
+    letter-spacing: -0.02em; line-height: 1.15;
+    color: var(--ink); font-variant-numeric: tabular-nums;
+  }
+  .kpi.highlight {
+    background: linear-gradient(180deg, var(--accent-soft), var(--surface) 70%);
+    border-color: rgba(193, 80, 44, 0.22);
+  }
+  .kpi.highlight .value { color: var(--accent); }
+  .kpi.codex-hi {
+    background: linear-gradient(180deg, var(--codex-soft), var(--surface) 70%);
+    border-color: rgba(37, 99, 165, 0.22);
+  }
+  .kpi.codex-hi .value { color: var(--codex); }
+
+  /* ─── Tabs + Select ────────────────────────────────────── */
+  .tabs-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+  .tabs {
+    display: inline-flex; gap: 2px; padding: 3px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; box-shadow: var(--shadow-sm);
+  }
+  .tab {
+    background: transparent; color: var(--muted); border: none;
+    padding: 6px 12px; border-radius: 7px; cursor: pointer;
+    font: 500 12.5px/1 var(--sans);
+    transition: all .15s ease;
+  }
+  .tab:hover { color: var(--ink); }
+  .tab.active {
+    background: var(--accent); color: #fff;
+  }
+  #codex-tabs .tab.active { background: var(--codex); }
+  .year-select {
+    background: var(--surface); color: var(--ink); border: 1px solid var(--border);
+    padding: 7px 28px 7px 12px; border-radius: 8px; font-size: 12.5px; cursor: pointer;
+    appearance: none; box-shadow: var(--shadow-sm);
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path fill='%236b7280' d='M0 0l5 6 5-6z'/></svg>");
+    background-repeat: no-repeat; background-position: right 10px center;
+    transition: border-color .15s;
+  }
+  .year-select:hover { border-color: var(--border-2); }
+  .year-select:disabled { opacity: .4; cursor: not-allowed; }
+
+  /* ─── Cards (chart / table containers) ─────────────────── */
+  .grid { display: grid; grid-template-columns: 1.7fr 1fr; gap: 14px; margin-bottom: 14px; }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    box-shadow: var(--shadow-sm);
+  }
+  .card h3 {
+    margin: 0 0 14px; font-size: 12px;
+    color: var(--muted); font-weight: 500;
+    letter-spacing: 0;
+  }
+  canvas { max-height: 300px; }
+
+  /* ─── Table ────────────────────────────────────────────── */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+  th {
+    color: var(--muted); font-weight: 500; font-size: 11.5px;
+    border-bottom-color: var(--border-2);
+  }
+  td { color: var(--ink-2); }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-family: var(--mono); font-size: 12.5px; }
+  tbody tr { transition: background .15s; }
+  tbody tr:hover { background: var(--surface-2); }
+  tbody tr:last-child td { border-bottom: none; }
+
+  /* ─── Footer ───────────────────────────────────────────── */
+  .footer {
+    margin-top: 36px; padding-top: 20px; border-top: 1px solid var(--border);
+    color: var(--muted); font-size: 12px;
+    display: flex; flex-wrap: wrap;
+    justify-content: space-between; align-items: center; gap: 8px;
+  }
+  .footer a { color: var(--ink-2); text-decoration: none; border-bottom: 1px solid var(--border-2); transition: all .15s; }
+  .footer a:hover { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* ─── Detail card (with mode tabs) ─────────────────────── */
+  .detail-head {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; margin-bottom: 14px;
+  }
+  .detail-head h3 { margin: 0; }
+  .detail-tabs {
+    display: inline-flex; gap: 2px; padding: 3px;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+  .dtab {
+    background: transparent; color: var(--muted); border: none;
+    padding: 4px 10px; border-radius: 6px; cursor: pointer;
+    font: 500 11.5px/1 var(--sans);
+    transition: all .15s ease;
+  }
+  .dtab:hover { color: var(--ink); }
+  .dtab.active { background: var(--ink); color: var(--surface); }
+  .detail-table th[data-sort] { cursor: pointer; user-select: none; }
+  .detail-table th[data-sort]:hover { color: var(--ink); }
+  .detail-table th.sorted-asc::after,
+  .detail-table th.sorted-desc::after {
+    margin-left: 4px; opacity: .65; font-size: 10px;
+  }
+  .detail-table th.sorted-desc::after { content: "↓"; }
+  .detail-table th.sorted-asc::after  { content: "↑"; }
+  .show-more {
+    display: block; margin: 14px auto 0;
+    background: transparent; color: var(--muted); border: 1px solid var(--border);
+    padding: 6px 14px; border-radius: 999px; cursor: pointer;
+    font: 500 12px/1 var(--sans);
+    transition: all .15s ease;
+  }
+  .show-more:hover { color: var(--ink); border-color: var(--border-2); }
+  .title-cell { max-width: 360px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .date-cell { font-family: var(--mono); font-size: 12.5px; white-space: nowrap; color: var(--ink-2); }
+  .badge-model {
+    display: inline-block; padding: 2px 8px; margin: 0 4px 2px 0;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 999px; font-size: 11px; color: var(--ink-2);
+    font-family: var(--mono);
+  }
+
+  /* ─── Tooltip ──────────────────────────────────────────── */
+  .has-tip { position: relative; display: inline-flex; align-items: center; gap: 4px; cursor: help; }
+  .has-tip .tip-icon {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 13px; height: 13px; border-radius: 50%;
+    border: 1px solid var(--border-2); color: var(--muted);
+    font-size: 9px; font-weight: 600; line-height: 1;
+    transition: all .15s;
+  }
+  .has-tip:hover .tip-icon { color: var(--ink); border-color: var(--ink-2); }
+  .has-tip .tip-body {
+    position: absolute; top: calc(100% + 8px); left: -8px;
+    width: 260px; padding: 10px 12px;
+    background: var(--ink); color: #fff;
+    border-radius: 8px; font-size: 11.5px; line-height: 1.55;
+    font-weight: 400; letter-spacing: 0;
+    box-shadow: var(--shadow-lg);
+    opacity: 0; pointer-events: none;
+    transform: translateY(-4px);
+    transition: opacity .18s ease, transform .18s ease;
+    z-index: 50; white-space: normal;
+  }
+  .has-tip .tip-body::before {
+    content: ""; position: absolute; top: -4px; left: 16px;
+    width: 8px; height: 8px; background: var(--ink); transform: rotate(45deg);
+  }
+  .has-tip:hover .tip-body { opacity: 1; transform: translateY(0); }
+
+  @media (max-width: 880px) {
+    .wrap { padding: 20px 16px 32px; }
+    .kpis { grid-template-columns: repeat(2, 1fr); }
+    .kpis-stats, .combined-kpis { grid-template-columns: 1fr; }
+    .grid { grid-template-columns: 1fr; }
+    .kpi .value { font-size: 21px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header-row">
+    <h1>__USER_NAME__ · 用量看板</h1>
+    <button id="theme-toggle" class="theme-toggle" title="切换主题" aria-label="切换主题">
+      <svg id="icon-sun" xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+        <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+      </svg>
+      <svg id="icon-moon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+      </svg>
+    </button>
+  </div>
+  <div class="sub" id="sub"></div>
+
+  <div class="section-title">Claude Code</div>
+
+  <div class="tabs-row">
+    <div class="tabs">
+      <button class="tab active" data-view="today">今日</button>
+      <button class="tab" data-view="daily">按天</button>
+      <button class="tab" data-view="weekly">按周</button>
+      <button class="tab" data-view="monthly">按月</button>
+    </div>
+    <select id="year-select" class="year-select" title="按年份筛选"></select>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><div class="label">总花费</div><div class="value" id="kpi-cost">—</div></div>
+    <div class="kpi"><div class="label">Token 总量</div><div class="value" id="kpi-tokens">—</div></div>
+    <div class="kpi"><div class="label"><span class="has-tip">缓存命中<span class="tip-icon">?</span><span class="tip-body">复用了之前对话已缓存的内容（系统提示、历史消息、工具定义等），价格比普通输入便宜约 10×。这个数字越高，说明 Prompt Caching 越有效，省下的钱越多。</span></span></div><div class="value" id="kpi-cache">—</div></div>
+    <div class="kpi"><div class="label">对话数</div><div class="value" id="kpi-periods">—</div></div>
+  </div>
+
+  <div class="kpis-stats">
+    <div class="kpi"><div class="label">最低 / 对话</div><div class="value" id="kpi-min">—</div></div>
+    <div class="kpi"><div class="label">平均 / 对话</div><div class="value" id="kpi-avg">—</div></div>
+    <div class="kpi"><div class="label">最高 / 对话</div><div class="value" id="kpi-max">—</div></div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h3 id="bar-title">各时段花费（按模型）</h3>
+      <canvas id="bar"></canvas>
+    </div>
+    <div class="card">
+      <h3>各模型花费占比</h3>
+      <canvas id="doughnut"></canvas>
+    </div>
+  </div>
+
+  <div class="card detail-card">
+    <div class="detail-head">
+      <h3>明细</h3>
+      <div class="detail-tabs" data-target="claude">
+        <button class="dtab active" data-mode="session">对话</button>
+        <button class="dtab" data-mode="period">时段</button>
+      </div>
+    </div>
+    <table id="tbl-session" class="detail-table">
+      <thead>
+        <tr>
+          <th data-sort="title">标题</th>
+          <th data-sort="date">日期</th>
+          <th class="num" data-sort="cost">花费 ($)</th>
+          <th class="num" data-sort="tokens">Token</th>
+          <th>模型</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <table id="tbl" class="detail-table" style="display:none">
+      <thead>
+        <tr>
+          <th>时段</th>
+          <th class="num">花费 ($)</th>
+          <th class="num">输入</th>
+          <th class="num">输出</th>
+          <th class="num">缓存写入</th>
+          <th class="num">缓存命中</th>
+          <th>模型</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <button class="show-more" id="claude-show-more" style="display:none">查看全部</button>
+  </div>
+
+  <div class="section-title codex">OpenAI Codex</div>
+
+  <div class="tabs-row">
+    <div class="tabs" id="codex-tabs">
+      <button class="tab active" data-view="today">今日</button>
+      <button class="tab" data-view="daily">按天</button>
+      <button class="tab" data-view="weekly">按周</button>
+      <button class="tab" data-view="monthly">按月</button>
+    </div>
+    <select id="codex-year-select" class="year-select" title="按年筛选" disabled></select>
+  </div>
+
+  <div class="kpis" id="codex-kpis">
+    <div class="kpi codex-hi"><div class="label">总花费</div><div class="value" id="codex-kpi-cost">—</div></div>
+    <div class="kpi"><div class="label">Token 总量</div><div class="value" id="codex-kpi-tokens">—</div></div>
+    <div class="kpi"><div class="label"><span class="has-tip">缓存命中<span class="tip-icon">?</span><span class="tip-body">复用了之前对话已缓存的内容（系统提示、历史消息、工具定义等），价格比普通输入便宜约 10×。这个数字越高，说明 Prompt Caching 越有效，省下的钱越多。</span></span></div><div class="value" id="codex-kpi-cache">—</div></div>
+    <div class="kpi"><div class="label">对话数</div><div class="value" id="codex-kpi-periods">—</div></div>
+  </div>
+
+  <div class="kpis-stats">
+    <div class="kpi"><div class="label">最低 / 对话</div><div class="value" id="codex-kpi-min">—</div></div>
+    <div class="kpi"><div class="label">平均 / 对话</div><div class="value" id="codex-kpi-avg">—</div></div>
+    <div class="kpi"><div class="label">最高 / 对话</div><div class="value" id="codex-kpi-max">—</div></div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h3 id="codex-bar-title">各时段花费（按模型）</h3>
+      <canvas id="codex-bar"></canvas>
+    </div>
+    <div class="card">
+      <h3>各模型花费占比</h3>
+      <canvas id="codex-doughnut"></canvas>
+    </div>
+  </div>
+
+  <div class="card detail-card">
+    <div class="detail-head">
+      <h3>Codex 明细</h3>
+      <div class="detail-tabs" data-target="codex">
+        <button class="dtab active" data-mode="session">对话</button>
+        <button class="dtab" data-mode="period">时段</button>
+      </div>
+    </div>
+    <table id="codex-tbl-session" class="detail-table">
+      <thead>
+        <tr>
+          <th data-sort="title">标题</th>
+          <th data-sort="date">日期</th>
+          <th class="num" data-sort="cost">花费 ($)</th>
+          <th class="num" data-sort="tokens">Token</th>
+          <th>模型</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <table id="codex-tbl" class="detail-table" style="display:none">
+      <thead>
+        <tr>
+          <th>时段</th>
+          <th class="num">花费 ($)</th>
+          <th class="num">输入</th>
+          <th class="num">输出</th>
+          <th class="num">推理</th>
+          <th class="num">缓存命中</th>
+          <th>模型</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <button class="show-more" id="codex-show-more" style="display:none">查看全部</button>
+  </div>
+
+  <div class="section-title combined">综合对比</div>
+  <div class="combined-kpis">
+    <div class="kpi"><div class="label">Claude 总花费</div><div class="value" id="cmp-claude">—</div></div>
+    <div class="kpi codex-hi"><div class="label">Codex 总花费</div><div class="value" id="cmp-codex">—</div></div>
+    <div class="kpi highlight"><div class="label">合计</div><div class="value" id="cmp-total">—</div></div>
+  </div>
+  <div class="card" style="margin-bottom:16px">
+    <h3>每月花费对比 — Claude vs Codex</h3>
+    <canvas id="combined-bar" style="max-height:260px"></canvas>
+  </div>
+
+  <footer class="footer">
+    <span><a href="https://github.com/okrasn/ccusage-ui-dashboard" target="_blank" rel="noopener">GitHub</a> &middot; <a href="https://www.npmjs.com/package/ccusage-ui-dashboard" target="_blank" rel="noopener">npm</a></span>
+    <span>&copy; <span id="footer-year"></span> Claude 用量看板</span>
+    <span>由 <a href="https://claude.com" target="_blank" rel="noopener">Claude</a> 打造 &middot; 数据来源：本地 Claude Code 日志</span>
+  </footer>
+</div>
+
+<script>
+const DATA = __DATA__;
+
+const COLORS = ["#c1502c", "#7a6a52", "#4b6c4f", "#8e7a9c", "#b89968", "#a85a52", "#5d7d8a", "#9a9484"];
+
+// Filter conversations to the active view's time range.
+function sessionsForView(sessions, view, year) {
+  const list = sessions || [];
+  if (view === "today") {
+    const t = new Date().toLocaleDateString("sv-SE");
+    return list.filter(s => s.date === t);
+  }
+  const y = String(year || (typeof selectedYear !== "undefined" ? selectedYear : new Date().getFullYear()));
+  return list.filter(s => (s.date || "").startsWith(y));
+}
+const countSessions = (sessions, view, year) => sessionsForView(sessions, view, year).length;
+function sessionCostStats(sessions, view, year) {
+  const list = sessionsForView(sessions, view, year);
+  const costs = list.map(s => s.costUSD || 0);
+  if (!costs.length) return { min: 0, avg: 0, max: 0 };
+  const sum = costs.reduce((a, b) => a + b, 0);
+  return { min: Math.min(...costs), avg: sum / costs.length, max: Math.max(...costs) };
+}
+const fmtUsd = n => "$" + (n || 0).toFixed(2);
+const fmtNum = n => (n || 0).toLocaleString("en-US");
+const shortModel = m => m.replace(/^claude-/, "").replace(/-\d{8}$/, "");
+
+function chartColors() {
+  const dark = document.documentElement.getAttribute("data-theme") === "dark";
+  return {
+    legend: dark ? "#c8ccd2" : "#3a3f47",
+    ticks:  dark ? "#8a92a0" : "#6b7280",
+    grid:   dark ? "rgba(241,243,245,0.06)" : "rgba(15,17,26,0.06)",
+    panel:  dark ? "#16191e" : "#ffffff",
+  };
+}
+
+const KEY_BY_VIEW = { today: "date", daily: "date", weekly: "week", monthly: "month" };
+const todayStr = () => new Date().toLocaleDateString("sv-SE"); // YYYY-MM-DD local
+let barChart, doughnutChart;
+
+// Stable color per model: assigned once from the union of models across all views,
+// ordered by total lifetime cost desc, so the priciest model keeps slot 0 across tabs.
+const MODEL_COLOR = (() => {
+  const totals = new Map();
+  for (const view of ["daily", "weekly", "monthly"]) {
+    for (const r of (DATA[view] || [])) {
+      for (const b of (r.modelBreakdowns || [])) {
+        totals.set(b.modelName, (totals.get(b.modelName) || 0) + (b.cost || 0));
+      }
+    }
+  }
+  const ordered = [...totals.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  const map = new Map();
+  ordered.forEach(([name], i) => map.set(name, COLORS[i % COLORS.length]));
+  return map;
+})();
+const colorFor = m => MODEL_COLOR.get(m) || "#a3a3a3";
+
+function rowsForView(view) {
+  if (view === "today") {
+    const t = todayStr();
+    return (DATA.daily || []).filter(r => r.date === t);
+  }
+  const key = KEY_BY_VIEW[view];
+  const rows = DATA[view] || [];
+  return rows.filter(r => (r[key] || "").startsWith(selectedYear + "-"));
+}
+
+function collectYears() {
+  const ys = new Set();
+  for (const view of ["daily", "weekly", "monthly"]) {
+    const key = KEY_BY_VIEW[view];
+    for (const r of (DATA[view] || [])) {
+      const v = r[key];
+      if (v) ys.add(v.slice(0, 4));
+    }
+  }
+  return [...ys].sort((a, b) => b.localeCompare(a));
+}
+
+const YEARS = collectYears();
+const currentYear = String(new Date().getFullYear());
+let selectedYear = YEARS.includes(currentYear) ? currentYear : (YEARS[0] || currentYear);
+
+function aggregateByModel(rows) {
+  const map = new Map();
+  for (const r of rows) for (const b of (r.modelBreakdowns || [])) {
+    map.set(b.modelName, (map.get(b.modelName) || 0) + (b.cost || 0));
+  }
+  return [...map.entries()].sort((a, b) => b[1] - a[1]);
+}
+
+function render(view) {
+  const rows = rowsForView(view);
+  const keyField = KEY_BY_VIEW[view];
+
+  const totalCost   = rows.reduce((s, r) => s + (r.totalCost || 0), 0);
+  const totalTokens = rows.reduce((s, r) => s + (r.totalTokens || 0), 0);
+  const cacheRead   = rows.reduce((s, r) => s + (r.cacheReadTokens || 0), 0);
+  document.getElementById("kpi-cost").textContent    = fmtUsd(totalCost);
+  document.getElementById("kpi-tokens").textContent  = fmtNum(totalTokens);
+  document.getElementById("kpi-cache").textContent   = fmtNum(cacheRead);
+  document.getElementById("kpi-periods").textContent = countSessions(DATA.sessions, view);
+
+  const stats = sessionCostStats(DATA.sessions, view);
+  document.getElementById("kpi-min").textContent = fmtUsd(stats.min);
+  document.getElementById("kpi-avg").textContent = fmtUsd(stats.avg);
+  document.getElementById("kpi-max").textContent = fmtUsd(stats.max);
+
+  const allModels = [...new Set(rows.flatMap(r => (r.modelBreakdowns || []).map(b => b.modelName)))];
+  const labels = rows.map(r => formatChartLabel(view, r[keyField]));
+  const datasets = allModels.map(m => ({
+    label: shortModel(m),
+    backgroundColor: colorFor(m),
+    data: rows.map(r => {
+      const b = (r.modelBreakdowns || []).find(x => x.modelName === m);
+      return b ? +b.cost.toFixed(4) : 0;
+    }),
+  }));
+
+  const periodLabel = { today: "今日", daily: "每日", weekly: "每周", monthly: "每月" }[view] || view;
+  document.getElementById("bar-title").textContent = `${periodLabel}花费（按模型）`;
+
+  const cc = chartColors();
+  if (barChart) barChart.destroy();
+  barChart = new Chart(document.getElementById("bar"), {
+    type: "bar",
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: cc.legend, boxWidth: 12 } },
+        tooltip: { callbacks: { label: c => `${c.dataset.label}: ${fmtUsd(c.parsed.y)}` } },
+      },
+      scales: {
+        x: { stacked: true, ticks: { color: cc.ticks }, grid: { color: cc.grid } },
+        y: { stacked: true, ticks: { color: cc.ticks, callback: v => "$" + v }, grid: { color: cc.grid } },
+      },
+    },
+  });
+
+  const byModel = aggregateByModel(rows);
+  if (doughnutChart) doughnutChart.destroy();
+  doughnutChart = new Chart(document.getElementById("doughnut"), {
+    type: "doughnut",
+    data: {
+      labels: byModel.map(([m]) => shortModel(m)),
+      datasets: [{
+        data: byModel.map(([, v]) => +v.toFixed(4)),
+        backgroundColor: byModel.map(([m]) => colorFor(m)),
+        borderColor: cc.panel,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: "bottom", labels: { color: cc.legend, boxWidth: 12 } },
+        tooltip: { callbacks: { label: c => `${c.label}: ${fmtUsd(c.parsed)}` } },
+      },
+    },
+  });
+
+  const tbody = document.querySelector("#tbl tbody");
+  tbody.innerHTML = "";
+  [...rows].reverse().forEach(r => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${r[keyField]}</td>
+      <td class="num">${fmtUsd(r.totalCost)}</td>
+      <td class="num">${fmtNum(r.inputTokens)}</td>
+      <td class="num">${fmtNum(r.outputTokens)}</td>
+      <td class="num">${fmtNum(r.cacheCreationTokens)}</td>
+      <td class="num">${fmtNum(r.cacheReadTokens)}</td>
+      <td>${(r.modelsUsed || []).map(shortModel).join(", ")}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+const yearSelect = document.getElementById("year-select");
+yearSelect.innerHTML = YEARS.map(y => `<option value="${y}"${y === selectedYear ? " selected" : ""}>${y}</option>`).join("")
+  || `<option value="${selectedYear}" selected>${selectedYear}</option>`;
+
+function currentView() {
+  const active = document.querySelector(".tab.active");
+  return active ? active.dataset.view : "today";
+}
+
+yearSelect.addEventListener("change", () => {
+  selectedYear = yearSelect.value;
+  render(currentView());
+});
+
+document.querySelectorAll(".tab").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    yearSelect.disabled = btn.dataset.view === "today";
+    render(btn.dataset.view);
+  });
+});
+
+// initial state: Today is active by default, so disable the year selector
+yearSelect.disabled = true;
+
+document.getElementById("sub").textContent = "更新于 " + DATA.generatedAt + " · 数据来源：本地 Claude Code 日志 (~/.claude/projects)";
+document.getElementById("footer-year").textContent = new Date().getFullYear();
+
+// Theme toggle
+const iconSun  = document.getElementById("icon-sun");
+const iconMoon = document.getElementById("icon-moon");
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute("data-theme", theme);
+  iconSun.style.display  = theme === "light" ? "none"  : "";
+  iconMoon.style.display = theme === "light" ? ""      : "none";
+  localStorage.setItem("ccusage-theme", theme);
+}
+
+applyTheme(localStorage.getItem("ccusage-theme") || "light");
+
+document.getElementById("theme-toggle").addEventListener("click", () => {
+  const next = document.documentElement.getAttribute("data-theme") === "light" ? "dark" : "light";
+  applyTheme(next);
+  render(currentView());
+});
+
+render("today");
+
+// ── Conversation detail tables (sortable, top-10, expandable) ──
+const SESSION_TABLE_LIMIT = 10;
+const SESSION_STATE = {
+  claude: { sort: "cost", dir: "desc", expanded: false, mode: "session" },
+  codex:  { sort: "cost", dir: "desc", expanded: false, mode: "session" },
+};
+
+function renderSessionTable(scope) {
+  const cfg = scope === "claude"
+    ? { sessions: DATA.sessions || [], tableId: "tbl-session", moreId: "claude-show-more" }
+    : { sessions: CODEX.sessions || [], tableId: "codex-tbl-session", moreId: "codex-show-more" };
+  const st = SESSION_STATE[scope];
+  const tbl = document.getElementById(cfg.tableId);
+  if (!tbl) return;
+  const tbody = tbl.querySelector("tbody");
+  const thead = tbl.querySelector("thead");
+  const more  = document.getElementById(cfg.moreId);
+
+  // Update sort indicator on headers
+  thead.querySelectorAll("th[data-sort]").forEach(th => {
+    th.classList.remove("sorted-asc", "sorted-desc");
+    if (th.dataset.sort === st.sort) th.classList.add("sorted-" + st.dir);
+  });
+
+  const keyOf = {
+    title:  s => (s.title || "").toLowerCase(),
+    date:   s => s.timestamp || s.date || "",
+    cost:   s => s.costUSD || 0,
+    tokens: s => s.totalTokens || 0,
+  };
+  const get = keyOf[st.sort] || keyOf.cost;
+  const sorted = [...cfg.sessions].sort((a, b) => {
+    const va = get(a), vb = get(b);
+    if (va < vb) return st.dir === "asc" ? -1 : 1;
+    if (va > vb) return st.dir === "asc" ?  1 : -1;
+    return 0;
+  });
+
+  const total = sorted.length;
+  const visible = st.expanded ? sorted : sorted.slice(0, SESSION_TABLE_LIMIT);
+
+  tbody.innerHTML = "";
+  visible.forEach(s => {
+    const tr = document.createElement("tr");
+    const dt = formatBeijing(s.timestamp || s.date);
+    const models = (s.models || []).map(m => `<span class="badge-model">${shortModel(m)}</span>`).join("");
+    tr.innerHTML = `
+      <td><div class="title-cell" title="${(s.title || "").replace(/"/g, '&quot;')}">${s.title || "(无标题)"}</div></td>
+      <td class="date-cell">${dt || "—"}</td>
+      <td class="num">${fmtUsd(s.costUSD)}</td>
+      <td class="num">${fmtNum(s.totalTokens)}</td>
+      <td>${models}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  if (total > SESSION_TABLE_LIMIT) {
+    more.style.display = "block";
+    more.textContent = st.expanded ? "收起" : `查看全部（${total}）`;
+  } else {
+    more.style.display = "none";
+  }
+}
+
+function wireDetailCard(scope) {
+  const tabs = document.querySelector(`.detail-tabs[data-target="${scope}"]`);
+  if (!tabs) return;
+  const tableSession = document.getElementById(scope === "claude" ? "tbl-session" : "codex-tbl-session");
+  const tablePeriod  = document.getElementById(scope === "claude" ? "tbl"         : "codex-tbl");
+  const more         = document.getElementById(scope === "claude" ? "claude-show-more" : "codex-show-more");
+  const st = SESSION_STATE[scope];
+
+  function applyMode() {
+    const m = st.mode;
+    tableSession.style.display = m === "session" ? "" : "none";
+    tablePeriod.style.display  = m === "period"  ? "" : "none";
+    if (m === "session") renderSessionTable(scope);
+    else more.style.display = "none";
+  }
+  tabs.querySelectorAll(".dtab").forEach(btn => {
+    btn.addEventListener("click", () => {
+      tabs.querySelectorAll(".dtab").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      st.mode = btn.dataset.mode;
+      applyMode();
+    });
+  });
+
+  // Sortable headers
+  const thead = (scope === "claude"
+    ? document.getElementById("tbl-session")
+    : document.getElementById("codex-tbl-session")).querySelector("thead");
+  thead.querySelectorAll("th[data-sort]").forEach(th => {
+    th.addEventListener("click", () => {
+      const k = th.dataset.sort;
+      if (st.sort === k) st.dir = st.dir === "asc" ? "desc" : "asc";
+      else { st.sort = k; st.dir = (k === "title" || k === "date") ? "desc" : "desc"; }
+      renderSessionTable(scope);
+    });
+  });
+
+  more.addEventListener("click", () => {
+    st.expanded = !st.expanded;
+    renderSessionTable(scope);
+  });
+
+  applyMode();
+}
+
+wireDetailCard("claude");
+
+// ── Codex section ──────────────────────────────────────────────
+const CODEX = DATA.codex || { daily: [], weekly: [], monthly: [] };
+
+// @ccusage/codex has no `weekly` command — derive weekly from daily.
+function deriveCodexWeekly(dailyRows) {
+  const buckets = new Map(); // key: "YYYY-Www"
+  for (const r of dailyRows) {
+    const d = new Date(r.date);
+    if (isNaN(d)) continue;
+    // ISO week (Mon start)
+    const tmp = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    const day = tmp.getUTCDay() || 7;
+    tmp.setUTCDate(tmp.getUTCDate() + 4 - day);
+    const yearStart = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1));
+    const weekNo = Math.ceil(((tmp - yearStart) / 86400000 + 1) / 7);
+    const key = `${tmp.getUTCFullYear()}-W${String(weekNo).padStart(2, "0")}`;
+    if (!buckets.has(key)) {
+      buckets.set(key, {
+        week: key,
+        inputTokens: 0, cachedInputTokens: 0, outputTokens: 0,
+        reasoningOutputTokens: 0, totalTokens: 0, costUSD: 0,
+        models: {},
+      });
+    }
+    const b = buckets.get(key);
+    b.inputTokens          += r.inputTokens || 0;
+    b.cachedInputTokens    += r.cachedInputTokens || 0;
+    b.outputTokens         += r.outputTokens || 0;
+    b.reasoningOutputTokens+= r.reasoningOutputTokens || 0;
+    b.totalTokens          += r.totalTokens || 0;
+    b.costUSD              += r.costUSD || 0;
+    for (const [name, m] of Object.entries(r.models || {})) {
+      if (!b.models[name]) b.models[name] = { inputTokens: 0, cachedInputTokens: 0, outputTokens: 0, reasoningOutputTokens: 0, totalTokens: 0 };
+      const bm = b.models[name];
+      bm.inputTokens          += m.inputTokens || 0;
+      bm.cachedInputTokens    += m.cachedInputTokens || 0;
+      bm.outputTokens         += m.outputTokens || 0;
+      bm.reasoningOutputTokens+= m.reasoningOutputTokens || 0;
+      bm.totalTokens          += m.totalTokens || 0;
+    }
+  }
+  return [...buckets.values()].sort((a, b) => a.week.localeCompare(b.week));
+}
+if (!CODEX.weekly || CODEX.weekly.length === 0) {
+  CODEX.weekly = deriveCodexWeekly(CODEX.daily || []);
+}
+
+// Monday of an ISO week (week 1 contains Jan 4)
+function isoWeekMonday(year, week) {
+  const jan4 = new Date(Date.UTC(year, 0, 4));
+  const jan4Day = jan4.getUTCDay() || 7;
+  const week1Monday = new Date(jan4);
+  week1Monday.setUTCDate(jan4.getUTCDate() - jan4Day + 1);
+  const target = new Date(week1Monday);
+  target.setUTCDate(week1Monday.getUTCDate() + (week - 1) * 7);
+  return target;
+}
+const pad2 = n => String(n).padStart(2, "0");
+
+// Format an ISO timestamp as Beijing time "YYYY-MM-DD HH:MM"
+function formatBeijing(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d)) return String(iso).slice(0, 16).replace("T", " ");
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Shanghai",
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", hour12: false,
+  }).formatToParts(d);
+  const m = {};
+  for (const p of parts) m[p.type] = p.value;
+  return `${m.year}-${m.month}-${m.day} ${m.hour}:${m.minute}`;
+}
+
+const EN_MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+// Format chart X-axis labels: hide year + unify Chinese style.
+// Daily/Weekly → "M/D" · Monthly → "M月"
+function formatChartLabel(view, raw) {
+  if (!raw) return "";
+  // "2026-05-06" → "5/6"
+  let m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw);
+  if (m) return `${+m[2]}/${+m[3]}`;
+  // "2026-05" → "5月"
+  m = /^(\d{4})-(\d{2})$/.exec(raw);
+  if (m) return `${+m[2]}月`;
+  // "2026-W19" → "5/4" (Monday of that ISO week)
+  m = /^(\d{4})-W(\d{2})$/.exec(raw);
+  if (m) {
+    const d = isoWeekMonday(+m[1], +m[2]);
+    return `${d.getUTCMonth() + 1}/${d.getUTCDate()}`;
+  }
+  // "Mar 16, 2026" → "3/16"
+  m = /^([A-Za-z]+)\s+(\d{1,2}),\s*\d{4}$/.exec(raw);
+  if (m) {
+    const mi = EN_MONTHS.indexOf(m[1]);
+    return mi >= 0 ? `${mi + 1}/${+m[2]}` : raw;
+  }
+  // "May 2026" → "5月"
+  m = /^([A-Za-z]+)\s+\d{4}$/.exec(raw);
+  if (m) {
+    const mi = EN_MONTHS.indexOf(m[1]);
+    return mi >= 0 ? `${mi + 1}月` : m[1];
+  }
+  return raw;
+}
+
+const CODEX_COLORS = ["#2a5d8f", "#5d7d8a", "#7a6a52", "#4b6c4f", "#8e7a9c", "#a85a52", "#b89968", "#9a9484"];
+
+const CODEX_MODEL_COLOR = (() => {
+  // Rank by lifetime totalTokens since per-model cost isn't provided
+  const totals = new Map();
+  for (const view of ["daily", "weekly", "monthly"]) {
+    for (const r of (CODEX[view] || [])) {
+      for (const [name, m] of Object.entries(r.models || {})) {
+        totals.set(name, (totals.get(name) || 0) + (m.totalTokens || 0));
+      }
+    }
+  }
+  const ordered = [...totals.entries()].sort((a, b) => b[1] - a[1]);
+  const map = new Map();
+  ordered.forEach(([name], i) => map.set(name, CODEX_COLORS[i % CODEX_COLORS.length]));
+  return map;
+})();
+const codexColorFor = m => CODEX_MODEL_COLOR.get(m) || "#a3a3a3";
+
+// Normalise Codex date strings to YYYY-MM-DD for filtering
+function codexDateKey(r) {
+  if (r.date) {
+    // "Mar 16, 2026" → "2026-03-16"
+    const d = new Date(r.date);
+    if (!isNaN(d)) return d.toLocaleDateString("sv-SE");
+  }
+  if (r.week)  return r.week;
+  if (r.month) return r.month; // "Mar 2026" kept as-is for monthly
+  return "";
+}
+
+function codexRowsForView(view) {
+  let rows;
+  if (view === "today") {
+    const t = todayStr();
+    rows = (CODEX.daily || []).filter(r => codexDateKey(r) === t);
+  } else {
+    rows = CODEX[view] || [];
+    // filter by selected year
+    rows = rows.filter(r => {
+      const k = codexDateKey(r);
+      return k.includes(selectedYear) || k.startsWith(selectedYear);
+    });
+  }
+  return rows;
+}
+
+let codexBarChart, codexDoughnutChart, combinedBarChart;
+
+function renderCodex(view) {
+  const rows = codexRowsForView(view);
+
+  const totalCost   = rows.reduce((s, r) => s + (r.costUSD || 0), 0);
+  const totalTokens = rows.reduce((s, r) => s + (r.totalTokens || 0), 0);
+  const cacheRead   = rows.reduce((s, r) => s + (r.cachedInputTokens || 0), 0);
+  document.getElementById("codex-kpi-cost").textContent    = fmtUsd(totalCost);
+  document.getElementById("codex-kpi-tokens").textContent  = fmtNum(totalTokens);
+  document.getElementById("codex-kpi-cache").textContent   = fmtNum(cacheRead);
+  document.getElementById("codex-kpi-periods").textContent = countSessions(CODEX.sessions, view, codexSelectedYear);
+
+  const stats = sessionCostStats(CODEX.sessions, view, codexSelectedYear);
+  document.getElementById("codex-kpi-min").textContent = fmtUsd(stats.min);
+  document.getElementById("codex-kpi-avg").textContent = fmtUsd(stats.avg);
+  document.getElementById("codex-kpi-max").textContent = fmtUsd(stats.max);
+
+  // Codex's per-model entry has no costUSD — apportion the period's total cost
+  // by each model's totalTokens share within that period.
+  const modelCostInRow = (r, m) => {
+    const models = r.models || {};
+    const entry = models[m];
+    if (!entry) return 0;
+    const totalTok = Object.values(models).reduce((s, x) => s + (x.totalTokens || 0), 0);
+    if (!totalTok) return 0;
+    return (r.costUSD || 0) * (entry.totalTokens || 0) / totalTok;
+  };
+
+  const allModels = [...new Set(rows.flatMap(r => Object.keys(r.models || {})))];
+  const labels = rows.map(r => formatChartLabel(view, r.date || r.week || r.month || ""));
+  const datasets = allModels.map(m => ({
+    label: m,
+    backgroundColor: codexColorFor(m),
+    data: rows.map(r => +modelCostInRow(r, m).toFixed(4)),
+  }));
+
+  const periodLabel = { today: "今日", daily: "每日", weekly: "每周", monthly: "每月" }[view] || view;
+  document.getElementById("codex-bar-title").textContent = `${periodLabel}花费（按模型）`;
+
+  const cc = chartColors();
+  if (codexBarChart) codexBarChart.destroy();
+  codexBarChart = new Chart(document.getElementById("codex-bar"), {
+    type: "bar",
+    data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: cc.legend, boxWidth: 12 } },
+        tooltip: { callbacks: { label: c => `${c.dataset.label}: ${fmtUsd(c.parsed.y)}` } },
+      },
+      scales: {
+        x: { stacked: true, ticks: { color: cc.ticks }, grid: { color: cc.grid } },
+        y: { stacked: true, ticks: { color: cc.ticks, callback: v => "$" + v }, grid: { color: cc.grid } },
+      },
+    },
+  });
+
+  // Sum apportioned per-model cost across all rows for the doughnut
+  const byModel = new Map();
+  for (const r of rows) {
+    for (const m of Object.keys(r.models || {})) {
+      byModel.set(m, (byModel.get(m) || 0) + modelCostInRow(r, m));
+    }
+  }
+  const byModelArr = [...byModel.entries()].sort((a, b) => b[1] - a[1]);
+  if (codexDoughnutChart) codexDoughnutChart.destroy();
+  codexDoughnutChart = new Chart(document.getElementById("codex-doughnut"), {
+    type: "doughnut",
+    data: {
+      labels: byModelArr.map(([m]) => m),
+      datasets: [{ data: byModelArr.map(([, v]) => +v.toFixed(4)), backgroundColor: byModelArr.map(([m]) => codexColorFor(m)), borderColor: cc.panel }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: "bottom", labels: { color: cc.legend, boxWidth: 12 } },
+        tooltip: { callbacks: { label: c => `${c.label}: ${fmtUsd(c.parsed)}` } },
+      },
+    },
+  });
+
+  const tbody = document.querySelector("#codex-tbl tbody");
+  tbody.innerHTML = "";
+  [...rows].reverse().forEach(r => {
+    const models = Object.keys(r.models || {}).join(", ");
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${r.date || r.week || r.month || ""}</td>
+      <td class="num">${fmtUsd(r.costUSD)}</td>
+      <td class="num">${fmtNum(r.inputTokens)}</td>
+      <td class="num">${fmtNum(r.outputTokens)}</td>
+      <td class="num">${fmtNum(r.reasoningOutputTokens)}</td>
+      <td class="num">${fmtNum(r.cachedInputTokens)}</td>
+      <td>${models}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function renderCombined() {
+  // Merge monthly data by month label
+  const claudeByMonth = new Map((DATA.monthly || []).map(r => [r.month, r.totalCost || 0]));
+  const codexByMonth  = new Map((CODEX.monthly || []).map(r => [r.month, r.costUSD || 0]));
+  const allMonths = [...new Set([...claudeByMonth.keys(), ...codexByMonth.keys()])].sort();
+
+  const claudeTotalAll = [...claudeByMonth.values()].reduce((a, b) => a + b, 0);
+  const codexTotalAll  = [...codexByMonth.values()].reduce((a, b) => a + b, 0);
+  document.getElementById("cmp-claude").textContent = fmtUsd(claudeTotalAll);
+  document.getElementById("cmp-codex").textContent  = fmtUsd(codexTotalAll);
+  document.getElementById("cmp-total").textContent  = fmtUsd(claudeTotalAll + codexTotalAll);
+
+  const cc = chartColors();
+  if (combinedBarChart) combinedBarChart.destroy();
+  combinedBarChart = new Chart(document.getElementById("combined-bar"), {
+    type: "bar",
+    data: {
+      labels: allMonths,
+      datasets: [
+        { label: "Claude Code", backgroundColor: "#d97757", data: allMonths.map(m => +(claudeByMonth.get(m) || 0).toFixed(4)) },
+        { label: "Codex",       backgroundColor: "#5b9dd9", data: allMonths.map(m => +(codexByMonth.get(m)  || 0).toFixed(4)) },
+      ],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: cc.legend, boxWidth: 12 } },
+        tooltip: { callbacks: { label: c => `${c.dataset.label}: ${fmtUsd(c.parsed.y)}` } },
+      },
+      scales: {
+        x: { ticks: { color: cc.ticks }, grid: { color: cc.grid } },
+        y: { ticks: { color: cc.ticks, callback: v => "$" + v }, grid: { color: cc.grid } },
+      },
+    },
+  });
+}
+
+// Codex year select
+const codexYearSelect = document.getElementById("codex-year-select");
+const CODEX_YEARS = (() => {
+  const ys = new Set();
+  for (const r of (CODEX.daily || [])) { const d = new Date(r.date); if (!isNaN(d)) ys.add(String(d.getFullYear())); }
+  for (const r of (CODEX.weekly || [])) { if (r.week) ys.add(r.week.slice(0, 4)); }
+  for (const r of (CODEX.monthly || [])) { if (r.month) { const y = new Date(r.month).getFullYear(); if (!isNaN(y)) ys.add(String(y)); } }
+  return [...ys].sort((a, b) => b.localeCompare(a));
+})();
+let codexSelectedYear = CODEX_YEARS.includes(currentYear) ? currentYear : (CODEX_YEARS[0] || currentYear);
+codexYearSelect.innerHTML = CODEX_YEARS.map(y => `<option value="${y}"${y === codexSelectedYear ? " selected" : ""}>${y}</option>`).join("")
+  || `<option value="${codexSelectedYear}" selected>${codexSelectedYear}</option>`;
+
+function codexCurrentView() {
+  const active = document.querySelector("#codex-tabs .tab.active");
+  return active ? active.dataset.view : "today";
+}
+
+// Override codexRowsForView to use codexSelectedYear
+const _origCodexRowsForView = codexRowsForView;
+codexRowsForView = function(view) {
+  let rows;
+  if (view === "today") {
+    const t = todayStr();
+    rows = (CODEX.daily || []).filter(r => codexDateKey(r) === t);
+  } else {
+    rows = CODEX[view] || [];
+    rows = rows.filter(r => {
+      const k = codexDateKey(r);
+      return k.includes(codexSelectedYear) || k.startsWith(codexSelectedYear);
+    });
+  }
+  return rows;
+};
+
+document.querySelectorAll("#codex-tabs .tab").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll("#codex-tabs .tab").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    codexYearSelect.disabled = btn.dataset.view === "today";
+    renderCodex(btn.dataset.view);
+  });
+});
+
+codexYearSelect.addEventListener("change", () => {
+  codexSelectedYear = codexYearSelect.value;
+  renderCodex(codexCurrentView());
+});
+
+document.getElementById("theme-toggle").addEventListener("click", () => {
+  renderCodex(codexCurrentView());
+  renderCombined();
+});
+
+renderCodex("today");
+renderCombined();
+wireDetailCard("codex");
+</script>
+</body>
+</html>

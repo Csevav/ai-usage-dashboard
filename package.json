@@ -1,0 +1,42 @@
+{
+  "name": "@lukemei/ai-usage-dashboard",
+  "version": "0.1.0",
+  "description": "Visual usage dashboard for Claude Code + OpenAI Codex — per-conversation ranking, real costs, side-by-side comparison. Chinese UI, Beijing time.",
+  "keywords": [
+    "claude",
+    "claude-code",
+    "codex",
+    "openai-codex",
+    "ccusage",
+    "dashboard",
+    "ai-usage",
+    "cost-tracker",
+    "anthropic"
+  ],
+  "author": "Luke Mei",
+  "license": "MIT",
+  "homepage": "https://github.com/lukemei/ai-usage-dashboard#readme",
+  "bugs": {
+    "url": "https://github.com/lukemei/ai-usage-dashboard/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lukemei/ai-usage-dashboard.git"
+  },
+  "scripts": {
+    "copy-dashboard": "bash ./scripts/copy-dashboard.sh",
+    "copy-command": "bash ./scripts/copy-command.sh",
+    "postinstall": "npm run copy-dashboard && npm run copy-command"
+  },
+  "files": [
+    "build.sh",
+    "template.html",
+    "scripts/",
+    "commands/",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  }
+}
