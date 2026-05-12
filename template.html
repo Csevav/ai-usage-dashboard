@@ -98,6 +98,37 @@
   .lang-toggle button:hover { color: var(--ink); }
   .lang-toggle button.active { background: var(--ink); color: var(--surface); }
   .header-tools { display: flex; align-items: center; gap: 8px; }
+  .toolbar-row {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; margin: 10px 0 24px;
+  }
+  .sub { margin: 0; }
+  .toolbar-actions { display: flex; align-items: center; gap: 10px; }
+  .action-btn {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; cursor: pointer; color: var(--ink);
+    height: 36px; padding: 0 14px; font: 500 12.5px/1 var(--sans);
+    box-shadow: var(--shadow-sm); transition: all .18s ease;
+  }
+  .action-btn:hover { border-color: var(--border-2); box-shadow: var(--shadow); }
+  .action-btn:disabled { opacity: .6; cursor: wait; }
+  .action-btn.icon-only {
+    width: 32px; height: 32px; padding: 0; border-radius: 999px;
+    display: inline-flex; align-items: center; justify-content: center;
+    flex: 0 0 auto;
+  }
+  .action-btn.icon-only svg {
+    width: 16px; height: 16px; stroke: currentColor; fill: none;
+    stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+  }
+  .action-btn.icon-only.loading svg { animation: spin .8s linear infinite; }
+  .status-text { color: var(--muted); font-size: 12px; min-height: 16px; }
+  .status-text.error { color: #b42318; }
+  .status-text.success { color: #0f766e; }
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
 
   /* ─── Section title ────────────────────────────────────── */
   .section-title {
@@ -140,16 +171,21 @@
     letter-spacing: -0.02em; line-height: 1.15;
     color: var(--ink); font-variant-numeric: tabular-nums;
   }
-  .kpi.highlight {
+  .kpi.claude-hi {
     background: linear-gradient(180deg, var(--accent-soft), var(--surface) 70%);
     border-color: rgba(193, 80, 44, 0.22);
   }
-  .kpi.highlight .value { color: var(--accent); }
+  .kpi.claude-hi .value { color: var(--accent); }
   .kpi.codex-hi {
     background: linear-gradient(180deg, var(--codex-soft), var(--surface) 70%);
     border-color: rgba(37, 99, 165, 0.22);
   }
   .kpi.codex-hi .value { color: var(--codex); }
+  .kpi.total-hi {
+    background: linear-gradient(180deg, rgba(85, 105, 135, 0.10), var(--surface) 70%);
+    border-color: rgba(85, 105, 135, 0.22);
+  }
+  .kpi.total-hi .value { color: #556987; }
 
   /* ─── Tabs + Select ────────────────────────────────────── */
   .tabs-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
@@ -169,6 +205,13 @@
     background: var(--accent); color: #fff;
   }
   #codex-tabs .tab.active { background: var(--codex); }
+  #codex-grain-tabs .tab.active { background: var(--codex); }
+  .chart-head {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; margin-bottom: 14px;
+  }
+  .chart-head h3 { margin: 0; }
+  .grain-tabs .tab { padding: 5px 10px; font-size: 11.5px; }
   .year-select {
     background: var(--surface); color: var(--ink); border: 1px solid var(--border);
     padding: 7px 28px 7px 12px; border-radius: 8px; font-size: 12.5px; cursor: pointer;
@@ -178,7 +221,10 @@
     transition: border-color .15s;
   }
   .year-select:hover { border-color: var(--border-2); }
-  .year-select:disabled { opacity: .4; cursor: not-allowed; }
+  .year-select:disabled {
+    opacity: 1; color: var(--ink); border-color: var(--border);
+    cursor: default; box-shadow: var(--shadow-sm);
+  }
 
   /* ─── Cards (chart / table containers) ─────────────────── */
   .grid { display: grid; grid-template-columns: 1.7fr 1fr; gap: 14px; margin-bottom: 14px; }
@@ -195,6 +241,14 @@
     letter-spacing: 0;
   }
   canvas { max-height: 300px; }
+  .chart-empty {
+    display: none; align-items: center; justify-content: center;
+    min-height: 260px; color: var(--muted); font-size: 13px;
+    border: 1px dashed var(--border); border-radius: 10px;
+    background: var(--surface-2);
+  }
+  .chart-empty.show { display: flex; }
+  .chart-canvas.hidden { display: none; }
 
   /* ─── Table ────────────────────────────────────────────── */
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
@@ -208,6 +262,9 @@
   tbody tr { transition: background .15s; }
   tbody tr:hover { background: var(--surface-2); }
   tbody tr:last-child td { border-bottom: none; }
+  .empty-row td {
+    text-align: center; color: var(--muted); padding: 18px 12px;
+  }
 
   /* ─── Footer ───────────────────────────────────────────── */
   .footer {
@@ -238,6 +295,7 @@
   }
   .dtab:hover { color: var(--ink); }
   .dtab.active { background: var(--ink); color: var(--surface); }
+  .detail-table { table-layout: fixed; }
   .detail-table th[data-sort] { cursor: pointer; user-select: none; }
   .detail-table th[data-sort]:hover { color: var(--ink); }
   .detail-table th.sorted-asc::after,
@@ -254,13 +312,27 @@
     transition: all .15s ease;
   }
   .show-more:hover { color: var(--ink); border-color: var(--border-2); }
-  .title-cell { max-width: 360px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .title-cell { width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .date-cell { font-family: var(--mono); font-size: 12.5px; white-space: nowrap; color: var(--ink-2); }
+  .model-cell {
+    display: flex; align-items: center; gap: 4px;
+    position: relative; min-width: 0; white-space: nowrap; overflow: visible;
+  }
   .badge-model {
-    display: inline-block; padding: 2px 8px; margin: 0 4px 2px 0;
+    display: inline-flex; align-items: center; max-width: 112px;
+    padding: 2px 8px;
     background: var(--bg); border: 1px solid var(--border);
     border-radius: 999px; font-size: 11px; color: var(--ink-2);
-    font-family: var(--mono);
+    font-family: var(--mono); overflow: hidden; text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .model-cell[data-full]:hover::after {
+    content: attr(data-full);
+    position: absolute; transform: translateY(calc(-100% - 8px));
+    max-width: 320px; padding: 6px 8px; border-radius: 7px;
+    background: var(--ink); color: var(--surface);
+    font: 500 11px/1.4 var(--mono); white-space: normal;
+    box-shadow: var(--shadow); z-index: 60;
   }
 
   /* ─── Tooltip ──────────────────────────────────────────── */
@@ -293,6 +365,7 @@
 
   @media (max-width: 880px) {
     .wrap { padding: 20px 16px 32px; }
+    .toolbar-row { flex-direction: column; align-items: flex-start; }
     .kpis { grid-template-columns: repeat(2, 1fr); }
     .kpis-stats, .combined-kpis { grid-template-columns: 1fr; }
     .grid { grid-template-columns: 1fr; }
@@ -322,16 +395,27 @@
     </button>
     </div>
   </div>
-  <div class="sub" id="sub"></div>
+  <div class="toolbar-row">
+    <div class="sub" id="sub"></div>
+    <div class="toolbar-actions">
+      <div id="refresh-status" class="status-text" aria-live="polite"></div>
+      <button id="refresh-btn" class="action-btn icon-only" type="button" data-i18n-title="refresh_button" title="刷新数据" aria-label="刷新数据">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M21 12a9 9 0 1 1-2.64-6.36"/>
+          <path d="M21 3v6h-6"/>
+        </svg>
+      </button>
+    </div>
+  </div>
 
   <div class="section-title">Claude Code</div>
 
   <div class="tabs-row">
     <div class="tabs" id="claude-tabs">
-      <button class="tab active" data-view="today" data-i18n="tab_today">今日</button>
-      <button class="tab" data-view="daily" data-i18n="tab_daily">按天</button>
-      <button class="tab" data-view="weekly" data-i18n="tab_weekly">按周</button>
-      <button class="tab" data-view="monthly" data-i18n="tab_monthly">按月</button>
+      <button class="tab active" data-range="today" data-i18n="range_today">今日</button>
+      <button class="tab" data-range="week" data-i18n="range_week">本周</button>
+      <button class="tab" data-range="month" data-i18n="range_month">本月</button>
+      <button class="tab" data-range="year" data-i18n="range_year">全年</button>
     </div>
     <select id="year-select" class="year-select" data-i18n-title="year_filter" title="按年份筛选"></select>
   </div>
@@ -351,12 +435,21 @@
 
   <div class="grid">
     <div class="card">
-      <h3 id="bar-title" data-i18n="chart_cost_by_model">各时段花费（按模型）</h3>
-      <canvas id="bar"></canvas>
+      <div class="chart-head">
+        <h3 id="bar-title" data-i18n="chart_cost_by_model">各时段花费（按模型）</h3>
+        <div class="tabs grain-tabs" id="claude-grain-tabs">
+          <button class="tab active" data-grain="daily" data-i18n="grain_daily">按天</button>
+          <button class="tab" data-grain="weekly" data-i18n="grain_weekly">按周</button>
+          <button class="tab" data-grain="monthly" data-i18n="grain_monthly">按月</button>
+        </div>
+      </div>
+      <div id="bar-empty" class="chart-empty" data-i18n="empty_state">当前筛选下暂无数据</div>
+      <canvas id="bar" class="chart-canvas"></canvas>
     </div>
     <div class="card">
       <h3 data-i18n="chart_cost_share">各模型花费占比</h3>
-      <canvas id="doughnut"></canvas>
+      <div id="doughnut-empty" class="chart-empty" data-i18n="empty_state">当前筛选下暂无数据</div>
+      <canvas id="doughnut" class="chart-canvas"></canvas>
     </div>
   </div>
 
@@ -369,6 +462,13 @@
       </div>
     </div>
     <table id="tbl-session" class="detail-table">
+      <colgroup>
+        <col style="width:34%">
+        <col style="width:20%">
+        <col style="width:12%">
+        <col style="width:14%">
+        <col style="width:20%">
+      </colgroup>
       <thead>
         <tr>
           <th data-sort="title" data-i18n="col_title">标题</th>
@@ -383,12 +483,12 @@
     <table id="tbl" class="detail-table" style="display:none">
       <thead>
         <tr>
-          <th data-i18n="col_period">时段</th>
-          <th class="num" data-i18n="col_cost">花费 ($)</th>
-          <th class="num" data-i18n="col_input">输入</th>
-          <th class="num" data-i18n="col_output">输出</th>
-          <th class="num" data-i18n="col_cache_write">缓存写入</th>
-          <th class="num" data-i18n="col_cache_read">缓存命中</th>
+          <th data-sort="period" data-i18n="col_period">时段</th>
+          <th class="num" data-sort="cost" data-i18n="col_cost">花费 ($)</th>
+          <th class="num" data-sort="input" data-i18n="col_input">输入</th>
+          <th class="num" data-sort="output" data-i18n="col_output">输出</th>
+          <th class="num" data-sort="cache_write" data-i18n="col_cache_write">缓存写入</th>
+          <th class="num" data-sort="cache_read" data-i18n="col_cache_read">缓存命中</th>
           <th data-i18n="col_models">模型</th>
         </tr>
       </thead>
@@ -401,16 +501,16 @@
 
   <div class="tabs-row">
     <div class="tabs" id="codex-tabs">
-      <button class="tab active" data-view="today" data-i18n="tab_today">今日</button>
-      <button class="tab" data-view="daily" data-i18n="tab_daily">按天</button>
-      <button class="tab" data-view="weekly" data-i18n="tab_weekly">按周</button>
-      <button class="tab" data-view="monthly" data-i18n="tab_monthly">按月</button>
+      <button class="tab active" data-range="today" data-i18n="range_today">今日</button>
+      <button class="tab" data-range="week" data-i18n="range_week">本周</button>
+      <button class="tab" data-range="month" data-i18n="range_month">本月</button>
+      <button class="tab" data-range="year" data-i18n="range_year">全年</button>
     </div>
     <select id="codex-year-select" class="year-select" data-i18n-title="year_filter" title="按年筛选" disabled></select>
   </div>
 
   <div class="kpis" id="codex-kpis">
-    <div class="kpi codex-hi"><div class="label" data-i18n="kpi_cost">总花费</div><div class="value" id="codex-kpi-cost">—</div></div>
+    <div class="kpi"><div class="label" data-i18n="kpi_cost">总花费</div><div class="value" id="codex-kpi-cost">—</div></div>
     <div class="kpi"><div class="label" data-i18n="kpi_tokens">Token 总量</div><div class="value" id="codex-kpi-tokens">—</div></div>
     <div class="kpi"><div class="label"><span class="has-tip"><span data-i18n="kpi_cache">缓存命中</span><span class="tip-icon">?</span><span class="tip-body" data-i18n="cache_tip">复用了之前对话已缓存的内容（系统提示、历史消息、工具定义等），价格比普通输入便宜约 10×。这个数字越高，说明 Prompt Caching 越有效，省下的钱越多。</span></span></div><div class="value" id="codex-kpi-cache">—</div></div>
     <div class="kpi"><div class="label" data-i18n="kpi_sessions">对话数</div><div class="value" id="codex-kpi-periods">—</div></div>
@@ -424,12 +524,21 @@
 
   <div class="grid">
     <div class="card">
-      <h3 id="codex-bar-title" data-i18n="chart_cost_by_model">各时段花费（按模型）</h3>
-      <canvas id="codex-bar"></canvas>
+      <div class="chart-head">
+        <h3 id="codex-bar-title" data-i18n="chart_cost_by_model">各时段花费（按模型）</h3>
+        <div class="tabs grain-tabs" id="codex-grain-tabs">
+          <button class="tab active" data-grain="daily" data-i18n="grain_daily">按天</button>
+          <button class="tab" data-grain="weekly" data-i18n="grain_weekly">按周</button>
+          <button class="tab" data-grain="monthly" data-i18n="grain_monthly">按月</button>
+        </div>
+      </div>
+      <div id="codex-bar-empty" class="chart-empty" data-i18n="empty_state">当前筛选下暂无数据</div>
+      <canvas id="codex-bar" class="chart-canvas"></canvas>
     </div>
     <div class="card">
       <h3 data-i18n="chart_cost_share">各模型花费占比</h3>
-      <canvas id="codex-doughnut"></canvas>
+      <div id="codex-doughnut-empty" class="chart-empty" data-i18n="empty_state">当前筛选下暂无数据</div>
+      <canvas id="codex-doughnut" class="chart-canvas"></canvas>
     </div>
   </div>
 
@@ -442,6 +551,13 @@
       </div>
     </div>
     <table id="codex-tbl-session" class="detail-table">
+      <colgroup>
+        <col style="width:34%">
+        <col style="width:20%">
+        <col style="width:12%">
+        <col style="width:14%">
+        <col style="width:20%">
+      </colgroup>
       <thead>
         <tr>
           <th data-sort="title" data-i18n="col_title">标题</th>
@@ -456,12 +572,12 @@
     <table id="codex-tbl" class="detail-table" style="display:none">
       <thead>
         <tr>
-          <th data-i18n="col_period">时段</th>
-          <th class="num" data-i18n="col_cost">花费 ($)</th>
-          <th class="num" data-i18n="col_input">输入</th>
-          <th class="num" data-i18n="col_output">输出</th>
-          <th class="num" data-i18n="col_reasoning">推理</th>
-          <th class="num" data-i18n="col_cache_read">缓存命中</th>
+          <th data-sort="period" data-i18n="col_period">时段</th>
+          <th class="num" data-sort="cost" data-i18n="col_cost">花费 ($)</th>
+          <th class="num" data-sort="input" data-i18n="col_input">输入</th>
+          <th class="num" data-sort="output" data-i18n="col_output">输出</th>
+          <th class="num" data-sort="reasoning" data-i18n="col_reasoning">推理</th>
+          <th class="num" data-sort="cache_read" data-i18n="col_cache_read">缓存命中</th>
           <th data-i18n="col_models">模型</th>
         </tr>
       </thead>
@@ -473,20 +589,29 @@
   <div class="section-title combined" data-i18n="section_combined">综合对比</div>
   <div class="tabs-row">
     <div class="tabs" id="combined-tabs">
-      <button class="tab active" data-view="daily" data-i18n="tab_daily">按天</button>
-      <button class="tab" data-view="weekly" data-i18n="tab_weekly">按周</button>
-      <button class="tab" data-view="monthly" data-i18n="tab_monthly">按月</button>
+      <button class="tab active" data-range="today" data-i18n="range_today">今日</button>
+      <button class="tab" data-range="week" data-i18n="range_week">本周</button>
+      <button class="tab" data-range="month" data-i18n="range_month">本月</button>
+      <button class="tab" data-range="year" data-i18n="range_year">全年</button>
     </div>
     <select id="combined-year-select" class="year-select" data-i18n-title="year_filter" title="按年份筛选"></select>
   </div>
   <div class="combined-kpis">
-    <div class="kpi"><div class="label" data-i18n="cmp_claude">Claude 总花费</div><div class="value" id="cmp-claude">—</div></div>
+    <div class="kpi claude-hi"><div class="label" data-i18n="cmp_claude">Claude 总花费</div><div class="value" id="cmp-claude">—</div></div>
     <div class="kpi codex-hi"><div class="label" data-i18n="cmp_codex">Codex 总花费</div><div class="value" id="cmp-codex">—</div></div>
-    <div class="kpi highlight"><div class="label" data-i18n="cmp_total">合计</div><div class="value" id="cmp-total">—</div></div>
+    <div class="kpi total-hi"><div class="label" data-i18n="cmp_total">合计</div><div class="value" id="cmp-total">—</div></div>
   </div>
   <div class="card" style="margin-bottom:16px">
-    <h3 data-i18n="chart_combined">每月花费对比 — Claude vs Codex</h3>
-    <canvas id="combined-bar" style="max-height:260px"></canvas>
+    <div class="chart-head">
+      <h3 data-i18n="chart_combined">花费对比 — Claude vs Codex</h3>
+      <div class="tabs grain-tabs" id="combined-grain-tabs">
+        <button class="tab active" data-grain="daily" data-i18n="grain_daily">按天</button>
+        <button class="tab" data-grain="weekly" data-i18n="grain_weekly">按周</button>
+        <button class="tab" data-grain="monthly" data-i18n="grain_monthly">按月</button>
+      </div>
+    </div>
+    <div id="combined-bar-empty" class="chart-empty" data-i18n="empty_state">当前筛选下暂无数据</div>
+    <canvas id="combined-bar" class="chart-canvas" style="max-height:260px"></canvas>
   </div>
 
   <footer class="footer">
@@ -498,6 +623,7 @@
 
 <script>
 const DATA = __DATA__;
+const DASHBOARD_SERVER_URL = "__SERVER_URL__";
 
 // ── i18n ────────────────────────────────────────────────────────
 const I18N = {
@@ -509,6 +635,13 @@ const I18N = {
     tab_daily:           "按天",
     tab_weekly:          "按周",
     tab_monthly:         "按月",
+    range_today:         "今日",
+    range_week:          "本周",
+    range_month:         "本月",
+    range_year:          "全年",
+    grain_daily:         "按天",
+    grain_weekly:        "按周",
+    grain_monthly:       "按月",
     year_filter:         "按年份筛选",
     kpi_cost:            "总花费",
     kpi_tokens:          "Token 总量",
@@ -520,7 +653,7 @@ const I18N = {
     cache_tip:           "复用了之前对话已缓存的内容（系统提示、历史消息、工具定义等），价格比普通输入便宜约 10×。这个数字越高，说明 Prompt Caching 越有效，省下的钱越多。",
     chart_cost_by_model: "各时段花费（按模型）",
     chart_cost_share:    "各模型花费占比",
-    chart_combined:      "每月花费对比 — Claude vs Codex",
+    chart_combined:      "花费对比 — Claude vs Codex",
     detail_title:        "明细",
     detail_codex_title:  "Codex 明细",
     detail_session:      "对话",
@@ -545,13 +678,23 @@ const I18N = {
     no_title:            "(无标题)",
     footer_brand:        "Claude 用量看板",
     footer_built:        '由 <a href="https://github.com/Csevav" target="_blank" rel="noopener">Luke Mei</a> 打造 · 数据来源：本地 Claude Code 日志',
-    sub_generated:       "更新于 {time} · 数据来源：本地 Claude Code 日志 (~/.claude/projects)",
     period_today:        "今日",
     period_daily:        "每日",
     period_weekly:       "每周",
     period_monthly:      "每月",
+    range_today_label:   "今日",
+    range_week_label:    "本周",
+    range_month_label:   "本月",
+    range_year_label:    "全年",
     chart_period_fmt:    "{period}花费（按模型）",
     chart_combined_fmt:  "{period}花费对比 — Claude vs Codex",
+    refresh_button:      "刷新数据",
+    refresh_idle:        "",
+    refresh_loading:     "刷新中…",
+    refresh_success:     "已更新",
+    refresh_error:       "刷新失败：{message}",
+    empty_state:         "当前筛选下暂无数据",
+    sub_generated:       "更新于 {time} · 数据来源：本地 Claude Code 日志 (~/.claude/projects)",
   },
   en: {
     title:               "Usage Dashboard",
@@ -561,6 +704,13 @@ const I18N = {
     tab_daily:           "Daily",
     tab_weekly:          "Weekly",
     tab_monthly:         "Monthly",
+    range_today:         "Today",
+    range_week:          "This week",
+    range_month:         "This month",
+    range_year:          "Full year",
+    grain_daily:         "Daily",
+    grain_weekly:        "Weekly",
+    grain_monthly:       "Monthly",
     year_filter:         "Filter by year",
     kpi_cost:            "Total cost",
     kpi_tokens:          "Total tokens",
@@ -572,7 +722,7 @@ const I18N = {
     cache_tip:           "Reuses content already cached from earlier in this conversation (system prompt, history, tool definitions). Roughly 10× cheaper than fresh input — the higher this number, the more Prompt Caching is saving you.",
     chart_cost_by_model: "Cost per period (by model)",
     chart_cost_share:    "Cost share by model",
-    chart_combined:      "Monthly cost — Claude vs Codex",
+    chart_combined:      "Cost — Claude vs Codex",
     detail_title:        "Breakdown",
     detail_codex_title:  "Codex breakdown",
     detail_session:      "By session",
@@ -597,13 +747,23 @@ const I18N = {
     no_title:            "(untitled)",
     footer_brand:        "AI Usage Dashboard",
     footer_built:        'Built by <a href="https://github.com/Csevav" target="_blank" rel="noopener">Luke Mei</a> · Data: local Claude Code logs',
-    sub_generated:       "Generated at {time} · data from local Claude logs (~/.claude/projects)",
     period_today:        "Today",
     period_daily:        "Daily",
     period_weekly:       "Weekly",
     period_monthly:      "Monthly",
+    range_today_label:   "Today",
+    range_week_label:    "This week",
+    range_month_label:   "This month",
+    range_year_label:    "Full year",
     chart_period_fmt:    "Cost per {period} (by model)",
     chart_combined_fmt:  "{period} cost — Claude vs Codex",
+    refresh_button:      "Refresh",
+    refresh_idle:        "",
+    refresh_loading:     "Refreshing…",
+    refresh_success:     "Updated",
+    refresh_error:       "Refresh failed: {message}",
+    empty_state:         "No data for the current filter",
+    sub_generated:       "Updated at {time} · data from local Claude logs (~/.claude/projects)",
   },
 };
 let currentLang = localStorage.getItem("ccusage-lang") || "zh";
@@ -641,19 +801,18 @@ function applyLanguage(lang) {
 
 const COLORS = ["#c1502c", "#7a6a52", "#4b6c4f", "#8e7a9c", "#b89968", "#a85a52", "#5d7d8a", "#9a9484"];
 
-// Filter conversations to the active view's time range.
-function sessionsForView(sessions, view, year) {
+// Filter conversations to the active time range.
+function sessionsForView(sessions, range, year) {
   const list = sessions || [];
-  if (view === "today") {
-    const t = new Date().toLocaleDateString("sv-SE");
-    return list.filter(s => s.date === t);
-  }
-  const y = String(year || (typeof selectedYear !== "undefined" ? selectedYear : new Date().getFullYear()));
-  return list.filter(s => (s.date || "").startsWith(y));
+  const bounds = rangeBounds(range, year);
+  return list.filter(s => {
+    const d = parseDateLike(s.date || s.timestamp);
+    return d && overlaps({ start: startOfDay(d), end: startOfDay(d) }, bounds);
+  });
 }
-const countSessions = (sessions, view, year) => sessionsForView(sessions, view, year).length;
-function sessionCostStats(sessions, view, year) {
-  const list = sessionsForView(sessions, view, year);
+const countSessions = (sessions, range, year) => sessionsForView(sessions, range, year).length;
+function sessionCostStats(sessions, range, year) {
+  const list = sessionsForView(sessions, range, year);
   const costs = list.map(s => s.costUSD || 0);
   if (!costs.length) return { min: 0, avg: 0, max: 0 };
   const sum = costs.reduce((a, b) => a + b, 0);
@@ -679,6 +838,59 @@ function chartColors() {
   };
 }
 
+function formatGeneratedAt(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d)) return String(iso);
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Shanghai",
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", hour12: false,
+  }).formatToParts(d);
+  const map = {};
+  for (const p of parts) map[p.type] = p.value;
+  return `${map.year}-${map.month}-${map.day} ${map.hour}:${map.minute}`;
+}
+
+function setRefreshStatus(kind, message = "") {
+  const el = document.getElementById("refresh-status");
+  if (!el) return;
+  el.className = "status-text";
+  if (kind === "success") el.classList.add("success");
+  if (kind === "error") el.classList.add("error");
+  const key = kind === "loading"
+    ? "refresh_loading"
+    : kind === "success"
+      ? "refresh_success"
+      : kind === "error"
+        ? "refresh_error"
+        : "refresh_idle";
+  el.textContent = kind === "error" ? t(key, { message }) : t(key);
+}
+
+function setChartEmptyState(canvasId, emptyId, hasData) {
+  const canvas = document.getElementById(canvasId);
+  const empty = document.getElementById(emptyId);
+  if (!canvas || !empty) return;
+  canvas.classList.toggle("hidden", !hasData);
+  empty.classList.toggle("show", !hasData);
+}
+
+function renderEmptyTable(tbody, colspan) {
+  tbody.innerHTML = `<tr class="empty-row"><td colspan="${colspan}">${escapeHtml(t("empty_state"))}</td></tr>`;
+}
+
+function renderModelBadges(models) {
+  const names = (models || []).map(shortModel).filter(Boolean);
+  if (!names.length) return "—";
+  const visible = names.slice(0, 2);
+  const hidden = names.length - visible.length;
+  const title = escapeHtml(names.join(", "));
+  const chips = visible.map(m => `<span class="badge-model">${escapeHtml(m)}</span>`);
+  if (hidden > 0) chips.push(`<span class="badge-model">+${hidden}</span>`);
+  return `<div class="model-cell" data-full="${title}">${chips.join("")}</div>`;
+}
+
 function barLayoutForCount(count) {
   if (count <= 1) return { maxBarThickness: 160, categoryPercentage: 0.42, barPercentage: 0.9 };
   if (count === 2) return { maxBarThickness: 108, categoryPercentage: 0.5, barPercentage: 0.88 };
@@ -687,8 +899,92 @@ function barLayoutForCount(count) {
 }
 
 const KEY_BY_VIEW = { today: "date", daily: "date", weekly: "week", monthly: "month" };
+const GRAIN_KEY = { daily: "date", weekly: "week", monthly: "month" };
 const todayStr = () => new Date().toLocaleDateString("sv-SE"); // YYYY-MM-DD local
+const GRAIN_STATE = { claude: "daily", codex: "daily", combined: "daily" };
 let barChart, doughnutChart;
+
+function localDateKey(d) {
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+}
+
+function parseDateLike(raw) {
+  if (!raw) return null;
+  const direct = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(raw));
+  if (direct) return new Date(+direct[1], +direct[2] - 1, +direct[3]);
+  const parsed = new Date(raw);
+  return isNaN(parsed) ? null : parsed;
+}
+
+function startOfDay(d) {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
+function addDays(d, days) {
+  const next = new Date(d);
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
+function rangeBounds(range, year) {
+  const now = startOfDay(new Date());
+  if (range === "today") return { start: now, end: now };
+  if (range === "week") {
+    const day = now.getDay() || 7;
+    const start = addDays(now, 1 - day);
+    return { start, end: addDays(start, 6) };
+  }
+  if (range === "month") {
+    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+    return { start, end: new Date(now.getFullYear(), now.getMonth() + 1, 0) };
+  }
+  const y = +(year || currentYear);
+  return { start: new Date(y, 0, 1), end: new Date(y, 11, 31) };
+}
+
+function periodBounds(grain, raw) {
+  if (grain === "daily") {
+    const d = parseDateLike(raw);
+    return d ? { start: startOfDay(d), end: startOfDay(d) } : null;
+  }
+  if (grain === "weekly") {
+    const m = /^(\d{4})-W(\d{2})$/.exec(String(raw || ""));
+    if (m) {
+      const monday = isoWeekMonday(+m[1], +m[2]);
+      return { start: monday, end: addDays(monday, 6) };
+    }
+    const d = parseDateLike(raw);
+    if (!d) return null;
+    const day = d.getDay() || 7;
+    const start = addDays(startOfDay(d), 1 - day);
+    return { start, end: addDays(start, 6) };
+  }
+  const monthKey = normalizeMonthKey(raw);
+  const m = /^(\d{4})-(\d{2})$/.exec(monthKey);
+  if (!m) return null;
+  return {
+    start: new Date(+m[1], +m[2] - 1, 1),
+    end: new Date(+m[1], +m[2], 0),
+  };
+}
+
+function overlaps(a, b) {
+  return a && b && a.start <= b.end && a.end >= b.start;
+}
+
+function rowPeriodRaw(scope, grain, row) {
+  if (scope === "codex" && grain === "daily") return codexDateKey(row);
+  return row[GRAIN_KEY[grain]] || row.date || row.week || row.month || "";
+}
+
+function rowsForScope(scope, grain, range, year) {
+  const source = scope === "codex" ? CODEX : DATA;
+  const bounds = rangeBounds(range, year || selectedYearForScope(scope));
+  return (source[grain] || []).filter(row => {
+    const raw = rowPeriodRaw(scope, grain, row);
+    return overlaps(periodBounds(grain, raw), bounds);
+  });
+}
 
 // Stable color per model: assigned once from the union of models across all views,
 // ordered by total lifetime cost desc, so the priciest model keeps slot 0 across tabs.
@@ -708,22 +1004,14 @@ const MODEL_COLOR = (() => {
 })();
 const colorFor = m => MODEL_COLOR.get(m) || "#a3a3a3";
 
-function rowsForView(view) {
-  if (view === "today") {
-    const t = todayStr();
-    return (DATA.daily || []).filter(r => r.date === t);
-  }
-  const key = KEY_BY_VIEW[view];
-  const rows = DATA[view] || [];
-  return rows.filter(r => (r[key] || "").startsWith(selectedYear + "-"));
-}
-
 function selectedYearForScope(scope) {
+  if (scope === "combined") return combinedSelectedYear;
   return scope === "codex" ? codexSelectedYear : selectedYear;
 }
 
 function activeViewForScope(scope) {
-  return scope === "codex" ? codexCurrentView() : currentView();
+  if (scope === "combined") return combinedCurrentRange();
+  return scope === "codex" ? codexCurrentRange() : currentRange();
 }
 
 function collectYears() {
@@ -750,25 +1038,28 @@ function aggregateByModel(rows) {
   return [...map.entries()].sort((a, b) => b[1] - a[1]);
 }
 
-function render(view) {
-  const rows = rowsForView(view);
-  const keyField = KEY_BY_VIEW[view];
+function render(range) {
+  const grain = GRAIN_STATE.claude;
+  const rows = rowsForScope("claude", grain, range, selectedYear);
+  const dailyRows = rowsForScope("claude", "daily", range, selectedYear);
+  const keyField = GRAIN_KEY[grain];
+  const hasRows = rows.length > 0;
 
-  const totalCost   = rows.reduce((s, r) => s + (r.totalCost || 0), 0);
-  const totalTokens = rows.reduce((s, r) => s + (r.totalTokens || 0), 0);
-  const cacheRead   = rows.reduce((s, r) => s + (r.cacheReadTokens || 0), 0);
+  const totalCost   = dailyRows.reduce((s, r) => s + (r.totalCost || 0), 0);
+  const totalTokens = dailyRows.reduce((s, r) => s + (r.totalTokens || 0), 0);
+  const cacheRead   = dailyRows.reduce((s, r) => s + (r.cacheReadTokens || 0), 0);
   document.getElementById("kpi-cost").textContent    = fmtUsd(totalCost);
   document.getElementById("kpi-tokens").textContent  = fmtNum(totalTokens);
   document.getElementById("kpi-cache").textContent   = fmtNum(cacheRead);
-  document.getElementById("kpi-periods").textContent = countSessions(DATA.sessions, view, selectedYear);
+  document.getElementById("kpi-periods").textContent = countSessions(DATA.sessions, range, selectedYear);
 
-  const stats = sessionCostStats(DATA.sessions, view, selectedYear);
+  const stats = sessionCostStats(DATA.sessions, range, selectedYear);
   document.getElementById("kpi-min").textContent = fmtUsd(stats.min);
   document.getElementById("kpi-avg").textContent = fmtUsd(stats.avg);
   document.getElementById("kpi-max").textContent = fmtUsd(stats.max);
 
   const allModels = [...new Set(rows.flatMap(r => (r.modelBreakdowns || []).map(b => b.modelName)))];
-  const labels = rows.map(r => formatChartLabel(view, r[keyField]));
+  const labels = rows.map(r => formatChartLabel(grain, r[keyField]));
   const barLayout = barLayoutForCount(labels.length);
   const datasets = allModels.map(m => ({
     label: shortModel(m),
@@ -780,55 +1071,64 @@ function render(view) {
     }),
   }));
 
-  const periodLabel = t({ today: "period_today", daily: "period_daily", weekly: "period_weekly", monthly: "period_monthly" }[view] || "period_today");
+  const periodLabel = t({ daily: "period_daily", weekly: "period_weekly", monthly: "period_monthly" }[grain] || "period_daily");
   document.getElementById("bar-title").textContent = t("chart_period_fmt", { period: periodLabel });
+  setChartEmptyState("bar", "bar-empty", hasRows);
 
   const cc = chartColors();
   if (barChart) barChart.destroy();
-  barChart = new Chart(document.getElementById("bar"), {
-    type: "bar",
-    data: { labels, datasets },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { labels: { color: cc.legend, boxWidth: 12 } },
-        tooltip: { callbacks: { label: c => `${c.dataset.label}: ${fmtUsd(c.parsed.y)}` } },
-      },
-      scales: {
-        x: { stacked: true, ticks: { color: cc.ticks }, grid: { color: cc.grid } },
-        y: { stacked: true, ticks: { color: cc.ticks, callback: v => "$" + v }, grid: { color: cc.grid } },
-      },
-    },
-  });
-
   const byModel = aggregateByModel(rows);
-  if (doughnutChart) doughnutChart.destroy();
-  doughnutChart = new Chart(document.getElementById("doughnut"), {
-    type: "doughnut",
-    data: {
-      labels: byModel.map(([m]) => shortModel(m)),
-      datasets: [{
-        data: byModel.map(([, v]) => +v.toFixed(4)),
-        backgroundColor: byModel.map(([m]) => colorFor(m)),
-        borderColor: cc.panel,
-      }],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { position: "bottom", labels: { color: cc.legend, boxWidth: 12 } },
-        tooltip: { callbacks: { label: c => `${c.label}: ${fmtUsd(c.parsed)}` } },
+  setChartEmptyState("doughnut", "doughnut-empty", hasRows && byModel.length > 0);
+  if (hasRows) {
+    barChart = new Chart(document.getElementById("bar"), {
+      type: "bar",
+      data: { labels, datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { labels: { color: cc.legend, boxWidth: 12 } },
+          tooltip: { callbacks: { label: c => `${c.dataset.label}: ${fmtUsd(c.parsed.y)}` } },
+        },
+        scales: {
+          x: { stacked: true, ticks: { color: cc.ticks }, grid: { color: cc.grid } },
+          y: { stacked: true, ticks: { color: cc.ticks, callback: v => "$" + v }, grid: { color: cc.grid } },
+        },
       },
-    },
-  });
+    });
+  }
+
+  if (doughnutChart) doughnutChart.destroy();
+  if (byModel.length) {
+    doughnutChart = new Chart(document.getElementById("doughnut"), {
+      type: "doughnut",
+      data: {
+        labels: byModel.map(([m]) => shortModel(m)),
+        datasets: [{
+          data: byModel.map(([, v]) => +v.toFixed(4)),
+          backgroundColor: byModel.map(([m]) => colorFor(m)),
+          borderColor: cc.panel,
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: "bottom", labels: { color: cc.legend, boxWidth: 12 } },
+          tooltip: { callbacks: { label: c => `${c.label}: ${fmtUsd(c.parsed)}` } },
+        },
+      },
+    });
+  }
 
   const tbody = document.querySelector("#tbl tbody");
+  if (!rows.length) {
+    renderEmptyTable(tbody, 7);
+    return;
+  }
   tbody.innerHTML = "";
   [...rows].reverse().forEach(r => {
     const tr = document.createElement("tr");
-    const modelsUsed = (r.modelsUsed || []).map(shortModel).map(escapeHtml).join(", ");
     tr.innerHTML = `
       <td>${escapeHtml(r[keyField] || "")}</td>
       <td class="num">${fmtUsd(r.totalCost)}</td>
@@ -836,7 +1136,7 @@ function render(view) {
       <td class="num">${fmtNum(r.outputTokens)}</td>
       <td class="num">${fmtNum(r.cacheCreationTokens)}</td>
       <td class="num">${fmtNum(r.cacheReadTokens)}</td>
-      <td>${modelsUsed}</td>
+      <td>${renderModelBadges(r.modelsUsed || [])}</td>
     `;
     tbody.appendChild(tr);
   });
@@ -847,28 +1147,44 @@ yearSelect.innerHTML = YEARS.map(y => `<option value="${y}"${y === selectedYear 
   || `<option value="${selectedYear}" selected>${selectedYear}</option>`;
 
 function currentView() {
+  return currentRange();
+}
+
+function currentRange() {
   const active = document.querySelector("#claude-tabs .tab.active");
-  return active ? active.dataset.view : "today";
+  return active ? active.dataset.range : "today";
 }
 
 yearSelect.addEventListener("change", () => {
   selectedYear = yearSelect.value;
-  render(currentView());
+  render(currentRange());
+  refreshDetailForScope("claude");
 });
 
 document.querySelectorAll("#claude-tabs .tab").forEach(btn => {
   btn.addEventListener("click", () => {
     document.querySelectorAll("#claude-tabs .tab").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
-    yearSelect.disabled = btn.dataset.view === "today";
-    render(btn.dataset.view);
+    yearSelect.disabled = btn.dataset.range !== "year";
+    render(btn.dataset.range);
+    refreshDetailForScope("claude");
+  });
+});
+
+document.querySelectorAll("#claude-grain-tabs .tab").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll("#claude-grain-tabs .tab").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    GRAIN_STATE.claude = btn.dataset.grain;
+    render(currentRange());
+    refreshDetailForScope("claude");
   });
 });
 
 // initial state: Today is active by default, so disable the year selector
 yearSelect.disabled = true;
 
-function applySubText() { document.getElementById("sub").textContent = t("sub_generated", { time: DATA.generatedAt }); }
+function applySubText() { document.getElementById("sub").textContent = t("sub_generated", { time: formatGeneratedAt(DATA.generatedAt) }); }
 applySubText();
 document.getElementById("footer-year").textContent = new Date().getFullYear();
 
@@ -888,7 +1204,7 @@ applyTheme(localStorage.getItem("ccusage-theme") || "light");
 document.getElementById("theme-toggle").addEventListener("click", () => {
   const next = document.documentElement.getAttribute("data-theme") === "light" ? "dark" : "light";
   applyTheme(next);
-  render(currentView());
+  render(currentRange());
 });
 
 render("today");
@@ -896,8 +1212,8 @@ render("today");
 // ── Conversation detail tables (sortable, top-10, expandable) ──
 const SESSION_TABLE_LIMIT = 10;
 const SESSION_STATE = {
-  claude: { sort: "cost", dir: "desc", expanded: false, mode: "session" },
-  codex:  { sort: "cost", dir: "desc", expanded: false, mode: "session" },
+  claude: { sort: "cost", dir: "desc", expanded: false, periodSort: "period", periodDir: "desc", periodExpanded: false, mode: "session" },
+  codex:  { sort: "cost", dir: "desc", expanded: false, periodSort: "period", periodDir: "desc", periodExpanded: false, mode: "session" },
 };
 
 function renderSessionTable(scope) {
@@ -937,12 +1253,18 @@ function renderSessionTable(scope) {
   const total = sorted.length;
   const visible = st.expanded ? sorted : sorted.slice(0, SESSION_TABLE_LIMIT);
 
+  if (!total) {
+    renderEmptyTable(tbody, 5);
+    more.style.display = "none";
+    return;
+  }
+
   tbody.innerHTML = "";
   visible.forEach(s => {
     const tr = document.createElement("tr");
     const dt = formatBeijing(s.timestamp || s.date);
     const title = s.title || t("no_title");
-    const models = (s.models || []).map(m => `<span class="badge-model">${escapeHtml(shortModel(m))}</span>`).join("");
+    const models = renderModelBadges(s.models || []);
     tr.innerHTML = `
       <td><div class="title-cell" title="${escapeHtml(title)}">${escapeHtml(title)}</div></td>
       <td class="date-cell">${dt || "—"}</td>
@@ -961,35 +1283,139 @@ function renderSessionTable(scope) {
   }
 }
 
+function periodRowsForDetail(scope) {
+  const range = activeViewForScope(scope);
+  const year = selectedYearForScope(scope);
+  const grain = GRAIN_STATE[scope];
+  return rowsForScope(scope, grain, range, year);
+}
+
+function renderPeriodTable(scope) {
+  const st = SESSION_STATE[scope];
+  const tbl = document.getElementById(scope === "claude" ? "tbl" : "codex-tbl");
+  const more = document.getElementById(scope === "claude" ? "claude-show-more" : "codex-show-more");
+  if (!tbl || !more) return;
+  const tbody = tbl.querySelector("tbody");
+  const thead = tbl.querySelector("thead");
+  const rows = periodRowsForDetail(scope);
+
+  thead.querySelectorAll("th[data-sort]").forEach(th => {
+    th.classList.remove("sorted-asc", "sorted-desc");
+    if (th.dataset.sort === st.periodSort) th.classList.add("sorted-" + st.periodDir);
+  });
+
+  const valueOf = scope === "claude"
+    ? {
+        period: r => rowPeriodRaw("claude", GRAIN_STATE.claude, r),
+        cost: r => r.totalCost || 0,
+        input: r => r.inputTokens || 0,
+        output: r => r.outputTokens || 0,
+        cache_write: r => r.cacheCreationTokens || 0,
+        cache_read: r => r.cacheReadTokens || 0,
+      }
+    : {
+        period: r => rowPeriodRaw("codex", GRAIN_STATE.codex, r),
+        cost: r => r.costUSD || 0,
+        input: r => r.inputTokens || 0,
+        output: r => r.outputTokens || 0,
+        reasoning: r => r.reasoningOutputTokens || 0,
+        cache_read: r => r.cachedInputTokens || 0,
+      };
+  const get = valueOf[st.periodSort] || valueOf.period;
+  const sorted = [...rows].sort((a, b) => {
+    const va = get(a), vb = get(b);
+    if (va < vb) return st.periodDir === "asc" ? -1 : 1;
+    if (va > vb) return st.periodDir === "asc" ? 1 : -1;
+    return 0;
+  });
+  const total = sorted.length;
+  const visible = st.periodExpanded ? sorted : sorted.slice(0, SESSION_TABLE_LIMIT);
+
+  if (!total) {
+    renderEmptyTable(tbody, 7);
+    more.style.display = "none";
+    return;
+  }
+
+  tbody.innerHTML = "";
+  visible.forEach(r => {
+    const tr = document.createElement("tr");
+    if (scope === "claude") {
+      tr.innerHTML = `
+        <td>${escapeHtml(rowPeriodRaw("claude", GRAIN_STATE.claude, r))}</td>
+        <td class="num">${fmtUsd(r.totalCost)}</td>
+        <td class="num">${fmtNum(r.inputTokens)}</td>
+        <td class="num">${fmtNum(r.outputTokens)}</td>
+        <td class="num">${fmtNum(r.cacheCreationTokens)}</td>
+        <td class="num">${fmtNum(r.cacheReadTokens)}</td>
+        <td>${renderModelBadges(r.modelsUsed || [])}</td>
+      `;
+    } else {
+      tr.innerHTML = `
+        <td>${escapeHtml(rowPeriodRaw("codex", GRAIN_STATE.codex, r))}</td>
+        <td class="num">${fmtUsd(r.costUSD)}</td>
+        <td class="num">${fmtNum(r.inputTokens)}</td>
+        <td class="num">${fmtNum(r.outputTokens)}</td>
+        <td class="num">${fmtNum(r.reasoningOutputTokens)}</td>
+        <td class="num">${fmtNum(r.cachedInputTokens)}</td>
+        <td>${renderModelBadges(Object.keys(r.models || {}))}</td>
+      `;
+    }
+    tbody.appendChild(tr);
+  });
+
+  if (total > SESSION_TABLE_LIMIT) {
+    more.style.display = "block";
+    more.textContent = st.periodExpanded ? t("show_collapse") : `${t("show_all")}（${total}）`;
+  } else {
+    more.style.display = "none";
+  }
+}
+
+function syncDetailTabsUI(scope) {
+  const tabs = document.querySelector(`.detail-tabs[data-target="${scope}"]`);
+  if (!tabs) return;
+  const mode = SESSION_STATE[scope].mode;
+  tabs.querySelectorAll(".dtab").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.mode === mode);
+  });
+}
+
+function applyDetailMode(scope) {
+  const st = SESSION_STATE[scope];
+  const tableSession = document.getElementById(scope === "claude" ? "tbl-session" : "codex-tbl-session");
+  const tablePeriod  = document.getElementById(scope === "claude" ? "tbl" : "codex-tbl");
+  const more         = document.getElementById(scope === "claude" ? "claude-show-more" : "codex-show-more");
+  if (!tableSession || !tablePeriod || !more) return;
+  tableSession.style.display = st.mode === "session" ? "" : "none";
+  tablePeriod.style.display  = st.mode === "period" ? "" : "none";
+  if (st.mode === "session") renderSessionTable(scope);
+  else renderPeriodTable(scope);
+}
+
+function refreshDetailForScope(scope, opts = {}) {
+  const st = SESSION_STATE[scope];
+  if (!st) return;
+  applyDetailMode(scope);
+}
+
 function wireDetailCard(scope) {
   const tabs = document.querySelector(`.detail-tabs[data-target="${scope}"]`);
   if (!tabs) return;
-  const tableSession = document.getElementById(scope === "claude" ? "tbl-session" : "codex-tbl-session");
-  const tablePeriod  = document.getElementById(scope === "claude" ? "tbl"         : "codex-tbl");
   const more         = document.getElementById(scope === "claude" ? "claude-show-more" : "codex-show-more");
   const st = SESSION_STATE[scope];
-
-  function applyMode() {
-    const m = st.mode;
-    tableSession.style.display = m === "session" ? "" : "none";
-    tablePeriod.style.display  = m === "period"  ? "" : "none";
-    if (m === "session") renderSessionTable(scope);
-    else more.style.display = "none";
-  }
   tabs.querySelectorAll(".dtab").forEach(btn => {
     btn.addEventListener("click", () => {
-      tabs.querySelectorAll(".dtab").forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
       st.mode = btn.dataset.mode;
-      applyMode();
+      syncDetailTabsUI(scope);
+      applyDetailMode(scope);
     });
   });
 
-  // Sortable headers
-  const thead = (scope === "claude"
+  const sessionHead = (scope === "claude"
     ? document.getElementById("tbl-session")
     : document.getElementById("codex-tbl-session")).querySelector("thead");
-  thead.querySelectorAll("th[data-sort]").forEach(th => {
+  sessionHead.querySelectorAll("th[data-sort]").forEach(th => {
     th.addEventListener("click", () => {
       const k = th.dataset.sort;
       if (st.sort === k) st.dir = st.dir === "asc" ? "desc" : "asc";
@@ -998,12 +1424,30 @@ function wireDetailCard(scope) {
     });
   });
 
-  more.addEventListener("click", () => {
-    st.expanded = !st.expanded;
-    renderSessionTable(scope);
+  const periodHead = (scope === "claude"
+    ? document.getElementById("tbl")
+    : document.getElementById("codex-tbl")).querySelector("thead");
+  periodHead.querySelectorAll("th[data-sort]").forEach(th => {
+    th.addEventListener("click", () => {
+      const k = th.dataset.sort;
+      if (st.periodSort === k) st.periodDir = st.periodDir === "asc" ? "desc" : "asc";
+      else { st.periodSort = k; st.periodDir = k === "period" ? "desc" : "desc"; }
+      renderPeriodTable(scope);
+    });
   });
 
-  applyMode();
+  more.addEventListener("click", () => {
+    if (st.mode === "session") {
+      st.expanded = !st.expanded;
+      renderSessionTable(scope);
+    } else {
+      st.periodExpanded = !st.periodExpanded;
+      renderPeriodTable(scope);
+    }
+  });
+
+  syncDetailTabsUI(scope);
+  applyDetailMode(scope);
 }
 
 wireDetailCard("claude");
@@ -1177,36 +1621,27 @@ function codexDateKey(r) {
   return "";
 }
 
-function codexRowsForView(view) {
-  let rows;
-  if (view === "today") {
-    const t = todayStr();
-    rows = (CODEX.daily || []).filter(r => codexDateKey(r) === t);
-  } else {
-    rows = CODEX[view] || [];
-    // filter by selected year
-    rows = rows.filter(r => {
-      const k = codexDateKey(r);
-      return k.includes(codexSelectedYear) || k.startsWith(codexSelectedYear);
-    });
-  }
-  return rows;
+function codexRowsForView(grain, range = codexCurrentRange()) {
+  return rowsForScope("codex", grain, range, codexSelectedYear);
 }
 
 let codexBarChart, codexDoughnutChart, combinedBarChart;
 
-function renderCodex(view) {
-  const rows = codexRowsForView(view);
+function renderCodex(range) {
+  const grain = GRAIN_STATE.codex;
+  const rows = codexRowsForView(grain, range);
+  const dailyRows = codexRowsForView("daily", range);
+  const hasRows = rows.length > 0;
 
-  const totalCost   = rows.reduce((s, r) => s + (r.costUSD || 0), 0);
-  const totalTokens = rows.reduce((s, r) => s + (r.totalTokens || 0), 0);
-  const cacheRead   = rows.reduce((s, r) => s + (r.cachedInputTokens || 0), 0);
+  const totalCost   = dailyRows.reduce((s, r) => s + (r.costUSD || 0), 0);
+  const totalTokens = dailyRows.reduce((s, r) => s + (r.totalTokens || 0), 0);
+  const cacheRead   = dailyRows.reduce((s, r) => s + (r.cachedInputTokens || 0), 0);
   document.getElementById("codex-kpi-cost").textContent    = fmtUsd(totalCost);
   document.getElementById("codex-kpi-tokens").textContent  = fmtNum(totalTokens);
   document.getElementById("codex-kpi-cache").textContent   = fmtNum(cacheRead);
-  document.getElementById("codex-kpi-periods").textContent = countSessions(CODEX.sessions, view, codexSelectedYear);
+  document.getElementById("codex-kpi-periods").textContent = countSessions(CODEX.sessions, range, codexSelectedYear);
 
-  const stats = sessionCostStats(CODEX.sessions, view, codexSelectedYear);
+  const stats = sessionCostStats(CODEX.sessions, range, codexSelectedYear);
   document.getElementById("codex-kpi-min").textContent = fmtUsd(stats.min);
   document.getElementById("codex-kpi-avg").textContent = fmtUsd(stats.avg);
   document.getElementById("codex-kpi-max").textContent = fmtUsd(stats.max);
@@ -1223,7 +1658,7 @@ function renderCodex(view) {
   };
 
   const allModels = [...new Set(rows.flatMap(r => Object.keys(r.models || {})))];
-  const labels = rows.map(r => formatChartLabel(view, r.date || r.week || r.month || ""));
+  const labels = rows.map(r => formatChartLabel(grain, rowPeriodRaw("codex", grain, r)));
   const barLayout = barLayoutForCount(labels.length);
   const datasets = allModels.map(m => ({
     label: m,
@@ -1232,26 +1667,29 @@ function renderCodex(view) {
     data: rows.map(r => +modelCostInRow(r, m).toFixed(4)),
   }));
 
-  const periodLabel = t({ today: "period_today", daily: "period_daily", weekly: "period_weekly", monthly: "period_monthly" }[view] || "period_today");
+  const periodLabel = t({ daily: "period_daily", weekly: "period_weekly", monthly: "period_monthly" }[grain] || "period_daily");
   document.getElementById("codex-bar-title").textContent = t("chart_period_fmt", { period: periodLabel });
+  setChartEmptyState("codex-bar", "codex-bar-empty", hasRows);
 
   const cc = chartColors();
   if (codexBarChart) codexBarChart.destroy();
-  codexBarChart = new Chart(document.getElementById("codex-bar"), {
-    type: "bar",
-    data: { labels, datasets },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: {
-        legend: { labels: { color: cc.legend, boxWidth: 12 } },
-        tooltip: { callbacks: { label: c => `${c.dataset.label}: ${fmtUsd(c.parsed.y)}` } },
+  if (hasRows) {
+    codexBarChart = new Chart(document.getElementById("codex-bar"), {
+      type: "bar",
+      data: { labels, datasets },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { labels: { color: cc.legend, boxWidth: 12 } },
+          tooltip: { callbacks: { label: c => `${c.dataset.label}: ${fmtUsd(c.parsed.y)}` } },
+        },
+        scales: {
+          x: { stacked: true, ticks: { color: cc.ticks }, grid: { color: cc.grid } },
+          y: { stacked: true, ticks: { color: cc.ticks, callback: v => "$" + v }, grid: { color: cc.grid } },
+        },
       },
-      scales: {
-        x: { stacked: true, ticks: { color: cc.ticks }, grid: { color: cc.grid } },
-        y: { stacked: true, ticks: { color: cc.ticks, callback: v => "$" + v }, grid: { color: cc.grid } },
-      },
-    },
-  });
+    });
+  }
 
   // Sum apportioned per-model cost across all rows for the doughnut
   const byModel = new Map();
@@ -1261,26 +1699,32 @@ function renderCodex(view) {
     }
   }
   const byModelArr = [...byModel.entries()].sort((a, b) => b[1] - a[1]);
+  setChartEmptyState("codex-doughnut", "codex-doughnut-empty", hasRows && byModelArr.length > 0);
   if (codexDoughnutChart) codexDoughnutChart.destroy();
-  codexDoughnutChart = new Chart(document.getElementById("codex-doughnut"), {
-    type: "doughnut",
-    data: {
-      labels: byModelArr.map(([m]) => m),
-      datasets: [{ data: byModelArr.map(([, v]) => +v.toFixed(4)), backgroundColor: byModelArr.map(([m]) => codexColorFor(m)), borderColor: cc.panel }],
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: {
-        legend: { position: "bottom", labels: { color: cc.legend, boxWidth: 12 } },
-        tooltip: { callbacks: { label: c => `${c.label}: ${fmtUsd(c.parsed)}` } },
+  if (byModelArr.length) {
+    codexDoughnutChart = new Chart(document.getElementById("codex-doughnut"), {
+      type: "doughnut",
+      data: {
+        labels: byModelArr.map(([m]) => m),
+        datasets: [{ data: byModelArr.map(([, v]) => +v.toFixed(4)), backgroundColor: byModelArr.map(([m]) => codexColorFor(m)), borderColor: cc.panel }],
       },
-    },
-  });
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { position: "bottom", labels: { color: cc.legend, boxWidth: 12 } },
+          tooltip: { callbacks: { label: c => `${c.label}: ${fmtUsd(c.parsed)}` } },
+        },
+      },
+    });
+  }
 
   const tbody = document.querySelector("#codex-tbl tbody");
+  if (!rows.length) {
+    renderEmptyTable(tbody, 7);
+    return;
+  }
   tbody.innerHTML = "";
   [...rows].reverse().forEach(r => {
-    const models = Object.keys(r.models || {}).map(escapeHtml).join(", ");
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${escapeHtml(r.date || r.week || r.month || "")}</td>
@@ -1289,66 +1733,64 @@ function renderCodex(view) {
       <td class="num">${fmtNum(r.outputTokens)}</td>
       <td class="num">${fmtNum(r.reasoningOutputTokens)}</td>
       <td class="num">${fmtNum(r.cachedInputTokens)}</td>
-      <td>${models}</td>
+      <td>${renderModelBadges(Object.keys(r.models || {}))}</td>
     `;
     tbody.appendChild(tr);
   });
 }
 
 function renderCombined() {
-  const view = combinedCurrentView();
+  const range = combinedCurrentRange();
+  const grain = GRAIN_STATE.combined;
   const year = combinedSelectedYear;
-  const claudeRows = view === "today" ? rowsForView("today") : (DATA[view] || []).filter(row => {
-    const raw = row[KEY_BY_VIEW[view]];
-    const key = normalizePeriodKey(view, raw);
-    return key.startsWith(year + "-");
-  });
-  const codexRows = view === "today" ? codexRowsForView("today") : (CODEX[view] || []).filter(row => {
-    const raw = row.date || row.week || row.month || "";
-    const key = normalizePeriodKey(view, view === "daily" ? codexDateKey(row) : raw);
-    return key.startsWith(year + "-");
-  });
+  const claudeRows = rowsForScope("claude", grain, range, year);
+  const codexRows = rowsForScope("codex", grain, range, year);
+  const claudeDailyRows = rowsForScope("claude", "daily", range, year);
+  const codexDailyRows = rowsForScope("codex", "daily", range, year);
 
-  const claudeMap = new Map(claudeRows.map(row => [normalizePeriodKey(view, row[KEY_BY_VIEW[view]]), row.totalCost || 0]));
+  const claudeMap = new Map(claudeRows.map(row => [normalizePeriodKey(grain, rowPeriodRaw("claude", grain, row)), row.totalCost || 0]));
   const codexMap = new Map(codexRows.map(row => {
-    const raw = view === "daily" ? codexDateKey(row) : (row.date || row.week || row.month || "");
-    return [normalizePeriodKey(view, raw), row.costUSD || 0];
+    return [normalizePeriodKey(grain, rowPeriodRaw("codex", grain, row)), row.costUSD || 0];
   }));
 
   const allKeys = [...new Set([...claudeMap.keys(), ...codexMap.keys()])].sort();
-  const labels = allKeys.map(key => formatChartLabel(view, key));
-  const claudeTotal = [...claudeMap.values()].reduce((a, b) => a + b, 0);
-  const codexTotal = [...codexMap.values()].reduce((a, b) => a + b, 0);
+  const labels = allKeys.map(key => formatChartLabel(grain, key));
+  const hasRows = allKeys.length > 0;
+  const claudeTotal = claudeDailyRows.reduce((a, b) => a + (b.totalCost || 0), 0);
+  const codexTotal = codexDailyRows.reduce((a, b) => a + (b.costUSD || 0), 0);
   const barLayout = barLayoutForCount(allKeys.length);
-  const periodLabel = t({ today: "period_today", daily: "period_daily", weekly: "period_weekly", monthly: "period_monthly" }[view] || "period_daily");
+  const periodLabel = t({ daily: "period_daily", weekly: "period_weekly", monthly: "period_monthly" }[grain] || "period_daily");
   document.getElementById("cmp-claude").textContent = fmtUsd(claudeTotal);
   document.getElementById("cmp-codex").textContent  = fmtUsd(codexTotal);
   document.getElementById("cmp-total").textContent  = fmtUsd(claudeTotal + codexTotal);
   document.querySelector("[data-i18n='chart_combined']").textContent = t("chart_combined_fmt", { period: periodLabel });
+  setChartEmptyState("combined-bar", "combined-bar-empty", hasRows);
 
   const cc = chartColors();
   if (combinedBarChart) combinedBarChart.destroy();
-  combinedBarChart = new Chart(document.getElementById("combined-bar"), {
-    type: "bar",
-    data: {
-      labels,
-      datasets: [
-        { label: "Claude Code", backgroundColor: "#d97757", ...barLayout, data: allKeys.map(key => +(claudeMap.get(key) || 0).toFixed(4)) },
-        { label: "Codex",       backgroundColor: "#5b9dd9", ...barLayout, data: allKeys.map(key => +(codexMap.get(key)  || 0).toFixed(4)) },
-      ],
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: {
-        legend: { labels: { color: cc.legend, boxWidth: 12 } },
-        tooltip: { callbacks: { label: c => `${c.dataset.label}: ${fmtUsd(c.parsed.y)}` } },
+  if (hasRows) {
+    combinedBarChart = new Chart(document.getElementById("combined-bar"), {
+      type: "bar",
+      data: {
+        labels,
+        datasets: [
+          { label: "Claude Code", backgroundColor: "#d97757", ...barLayout, data: allKeys.map(key => +(claudeMap.get(key) || 0).toFixed(4)) },
+          { label: "Codex",       backgroundColor: "#5b9dd9", ...barLayout, data: allKeys.map(key => +(codexMap.get(key)  || 0).toFixed(4)) },
+        ],
       },
-      scales: {
-        x: { ticks: { color: cc.ticks }, grid: { color: cc.grid } },
-        y: { ticks: { color: cc.ticks, callback: v => "$" + v }, grid: { color: cc.grid } },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { labels: { color: cc.legend, boxWidth: 12 } },
+          tooltip: { callbacks: { label: c => `${c.dataset.label}: ${fmtUsd(c.parsed.y)}` } },
+        },
+        scales: {
+          x: { ticks: { color: cc.ticks }, grid: { color: cc.grid } },
+          y: { ticks: { color: cc.ticks, callback: v => "$" + v }, grid: { color: cc.grid } },
+        },
       },
-    },
-  });
+    });
+  }
 }
 
 // Combined compare controls
@@ -1375,8 +1817,12 @@ combinedYearSelect.innerHTML = COMBINED_YEARS.map(y => `<option value="${y}"${y 
   || `<option value="${combinedSelectedYear}" selected>${combinedSelectedYear}</option>`;
 
 function combinedCurrentView() {
+  return combinedCurrentRange();
+}
+
+function combinedCurrentRange() {
   const active = document.querySelector("#combined-tabs .tab.active");
-  return active ? active.dataset.view : "daily";
+  return active ? active.dataset.range : "today";
 }
 
 // Codex year select
@@ -1393,29 +1839,45 @@ codexYearSelect.innerHTML = CODEX_YEARS.map(y => `<option value="${y}"${y === co
   || `<option value="${codexSelectedYear}" selected>${codexSelectedYear}</option>`;
 
 function codexCurrentView() {
+  return codexCurrentRange();
+}
+
+function codexCurrentRange() {
   const active = document.querySelector("#codex-tabs .tab.active");
-  return active ? active.dataset.view : "today";
+  return active ? active.dataset.range : "today";
 }
 
 document.querySelectorAll("#codex-tabs .tab").forEach(btn => {
   btn.addEventListener("click", () => {
     document.querySelectorAll("#codex-tabs .tab").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
-    codexYearSelect.disabled = btn.dataset.view === "today";
-    renderCodex(btn.dataset.view);
+    codexYearSelect.disabled = btn.dataset.range !== "year";
+    renderCodex(btn.dataset.range);
+    refreshDetailForScope("codex");
   });
 });
 
 codexYearSelect.addEventListener("change", () => {
   codexSelectedYear = codexYearSelect.value;
-  renderCodex(codexCurrentView());
+  renderCodex(codexCurrentRange());
+  refreshDetailForScope("codex");
+});
+
+document.querySelectorAll("#codex-grain-tabs .tab").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll("#codex-grain-tabs .tab").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    GRAIN_STATE.codex = btn.dataset.grain;
+    renderCodex(codexCurrentRange());
+    refreshDetailForScope("codex");
+  });
 });
 
 document.querySelectorAll("#combined-tabs .tab").forEach(btn => {
   btn.addEventListener("click", () => {
     document.querySelectorAll("#combined-tabs .tab").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
-    combinedYearSelect.disabled = btn.dataset.view === "today";
+    combinedYearSelect.disabled = btn.dataset.range !== "year";
     renderCombined();
   });
 });
@@ -1425,21 +1887,54 @@ combinedYearSelect.addEventListener("change", () => {
   renderCombined();
 });
 
+document.querySelectorAll("#combined-grain-tabs .tab").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll("#combined-grain-tabs .tab").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    GRAIN_STATE.combined = btn.dataset.grain;
+    renderCombined();
+  });
+});
+
 document.getElementById("theme-toggle").addEventListener("click", () => {
-  renderCodex(codexCurrentView());
+  renderCodex(codexCurrentRange());
   renderCombined();
 });
 
+document.getElementById("refresh-btn").addEventListener("click", async () => {
+  const btn = document.getElementById("refresh-btn");
+  btn.disabled = true;
+  setRefreshStatus("loading");
+  try {
+    const res = await fetch(`${DASHBOARD_SERVER_URL}/__refresh__`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      cache: "no-store",
+    });
+    const payload = await res.json().catch(() => ({}));
+    if (!res.ok || !payload.ok) {
+      throw new Error(payload.error || `HTTP ${res.status}`);
+    }
+    setRefreshStatus("success");
+    window.location.href = `${window.location.pathname}?t=${Date.now()}`;
+  } catch (err) {
+    const msg = String(err && err.message ? err.message : err).replace(/\s+/g, " ").trim();
+    setRefreshStatus("error", msg);
+  } finally {
+    btn.disabled = false;
+  }
+});
+
 renderCodex("today");
-combinedYearSelect.disabled = combinedCurrentView() === "today";
+combinedYearSelect.disabled = combinedCurrentRange() !== "year";
 renderCombined();
 wireDetailCard("codex");
 
 // ── Language wire-up ────────────────────────────────────────────
 function rerenderAll() {
   applySubText();
-  render(currentView());
-  renderCodex(codexCurrentView());
+  render(currentRange());
+  renderCodex(codexCurrentRange());
   renderCombined();
   // Refresh detail tables (which may include translated headers / titles)
   renderSessionTable("claude");

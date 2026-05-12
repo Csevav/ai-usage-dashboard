@@ -4,13 +4,18 @@ set -euo pipefail
 DIR="${AI_USAGE_DASHBOARD_HOME:-${HOME}/.ai-usage-dashboard}"
 OUT="${DIR}/index.html"
 TEMPLATE="${DIR}/template.html"
+SERVER_PORT="${AI_USAGE_DASHBOARD_PORT:-46327}"
+SERVER_URL="http://127.0.0.1:${SERVER_PORT}"
+SERVER_SCRIPT="${DIR}/scripts/dashboard_server.py"
 
 NO_OPEN=0
 NO_SUMMARY=0
+FROM_SERVER=0
 for arg in "$@"; do
   case "$arg" in
     --no-open)    NO_OPEN=1 ;;
     --no-summary) NO_SUMMARY=1 ;;
+    --from-server) FROM_SERVER=1 ;;
     *)
       echo "Unknown option: $arg" >&2
       echo "Usage: $0 [--no-open] [--no-summary]" >&2
@@ -24,6 +29,25 @@ if [[ ! -f "$TEMPLATE" ]]; then
   echo "Run the installer first so ${DIR} is populated." >&2
   exit 1
 fi
+
+ensure_server() {
+  if [[ ! -f "$SERVER_SCRIPT" ]]; then
+    echo "Refresh server script not found: $SERVER_SCRIPT" >&2
+    return 1
+  fi
+  if command -v curl >/dev/null 2>&1 && curl -fsS "${SERVER_URL}/__health__" >/dev/null 2>&1; then
+    return 0
+  fi
+  nohup python3 "$SERVER_SCRIPT" --dir "$DIR" --port "$SERVER_PORT" >/dev/null 2>&1 &
+  for _ in {1..20}; do
+    sleep 0.2
+    if command -v curl >/dev/null 2>&1 && curl -fsS "${SERVER_URL}/__health__" >/dev/null 2>&1; then
+      return 0
+    fi
+  done
+  echo "Failed to start local dashboard server on ${SERVER_URL}" >&2
+  return 1
+}
 
 export DAILY=$(npx --yes ccusage daily --json --breakdown)
 export WEEKLY=$(npx --yes ccusage weekly --json --breakdown)
@@ -113,6 +137,11 @@ for f in sorted(glob.glob(os.path.expanduser("~/.claude/projects/*/*.jsonl"))):
 print(json.dumps(out))
 ')
 export GENERATED_AT=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+export DASHBOARD_SERVER_URL="$SERVER_URL"
+
+if [[ "$FROM_SERVER" -eq 0 ]]; then
+  ensure_server
+fi
 
 if [[ -z "${USER_NAME:-}" ]]; then
   USER_NAME="$(
@@ -335,6 +364,7 @@ with open(template_path, "r", encoding="utf-8") as f:
     html = f.read()
 html = html.replace("__DATA__", dump_json_for_script(payload))
 html = html.replace("__USER_NAME__", html_lib.escape(os.environ.get("USER_NAME", "User")))
+html = html.replace("__SERVER_URL__", os.environ.get("DASHBOARD_SERVER_URL", "http://127.0.0.1:46327"))
 with open(out_path, "w", encoding="utf-8") as f:
     f.write(html)
 PY
@@ -406,7 +436,14 @@ if [[ "${TERM_PROGRAM:-}" == "vscode" ]]; then
 fi
 
 if [[ "$NO_OPEN" -eq 0 ]]; then
-  if command -v open >/dev/null 2>&1; then
+  if [[ "$FROM_SERVER" -eq 0 ]]; then
+    TARGET_URL="${SERVER_URL}/index.html?t=$(date +%s)"
+    if command -v open >/dev/null 2>&1; then
+      open "$TARGET_URL"
+    else
+      echo "Dashboard ready: ${TARGET_URL}"
+    fi
+  elif command -v open >/dev/null 2>&1; then
     open "$OUT"
   else
     echo "Open skipped: no 'open' command found. File is ready at ${OUT}"
