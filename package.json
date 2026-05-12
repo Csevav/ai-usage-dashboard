@@ -23,12 +23,16 @@
     "type": "git",
     "url": "git+https://github.com/Csevav/ai-usage-dashboard.git"
   },
+  "bin": {
+    "ai-usage-dashboard": "./bin/ai-usage-dashboard"
+  },
   "scripts": {
     "copy-dashboard": "bash ./scripts/copy-dashboard.sh",
     "copy-command": "bash ./scripts/copy-command.sh",
     "postinstall": "npm run copy-dashboard && npm run copy-command"
   },
   "files": [
+    "bin/",
     "build.sh",
     "template.html",
     "scripts/",

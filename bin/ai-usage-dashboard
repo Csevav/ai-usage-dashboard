@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+export AI_USAGE_DASHBOARD_HOME="${AI_USAGE_DASHBOARD_HOME:-${HOME}/.ai-usage-dashboard}"
+
+bash "${SCRIPT_DIR}/scripts/copy-dashboard.sh" >/dev/null
+exec bash "${SCRIPT_DIR}/build.sh" "$@"

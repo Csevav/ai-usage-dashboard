@@ -46,6 +46,18 @@ bash ~/.ai-usage-dashboard/build.sh
 
 这是面向 **Codex / shell workflow** 的直接入口。
 
+也支持直接用 `npx` 运行：
+
+```bash
+npx @csevav/ai-usage-dashboard
+```
+
+例如：
+
+```bash
+npx @csevav/ai-usage-dashboard --no-open
+```
+
 如果你在用 **Claude Code**，也可以直接输入：
 
 ```
