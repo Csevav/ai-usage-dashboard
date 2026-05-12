@@ -1,4 +1,4 @@
-# @lukemei/ai-usage-dashboard
+# @csevav/ai-usage-dashboard
 
 > 一个可视化的 **Claude Code + OpenAI Codex** 用量看板。基于 [`ccusage`](https://www.npmjs.com/package/ccusage) 增强，新增 Codex 数据、按对话排行、中文界面、北京时间等功能。
 >
@@ -28,7 +28,7 @@
 ## 📦 安装 / Install
 
 ```bash
-npm install -g @lukemei/ai-usage-dashboard
+npm install -g @csevav/ai-usage-dashboard
 ```
 
 安装后会自动：
