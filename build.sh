@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:${PATH:-}"
+
 DIR="${AI_USAGE_DASHBOARD_HOME:-${HOME}/.ai-usage-dashboard}"
 OUT="${DIR}/index.html"
 TEMPLATE="${DIR}/template.html"
@@ -8,6 +10,7 @@ SERVER_PORT="${AI_USAGE_DASHBOARD_PORT:-46327}"
 SERVER_URL="http://127.0.0.1:${SERVER_PORT}"
 SERVER_SCRIPT="${DIR}/scripts/dashboard_server.py"
 TOKEN_FILE="${DIR}/.refresh-token"
+LAUNCH_LABEL="com.csevav.ai-usage-dashboard.${SERVER_PORT}"
 
 NO_OPEN=0
 NO_SUMMARY=0
@@ -49,6 +52,9 @@ PY
 
 stop_stale_server() {
   local pids
+  if [[ "$(uname -s)" == "Darwin" ]] && command -v launchctl >/dev/null 2>&1; then
+    launchctl remove "$LAUNCH_LABEL" >/dev/null 2>&1 || true
+  fi
   if ! command -v lsof >/dev/null 2>&1; then
     return 0
   fi
@@ -65,6 +71,22 @@ stop_stale_server() {
   done
 }
 
+start_server() {
+  local python_bin
+  python_bin="$(command -v python3)"
+  if [[ "$(uname -s)" == "Darwin" ]] && command -v launchctl >/dev/null 2>&1; then
+    launchctl remove "$LAUNCH_LABEL" >/dev/null 2>&1 || true
+    launchctl submit \
+      -l "$LAUNCH_LABEL" \
+      -o "${DIR}/dashboard-server.out.log" \
+      -e "${DIR}/dashboard-server.err.log" \
+      -- "$python_bin" "$SERVER_SCRIPT" --dir "$DIR" --port "$SERVER_PORT" --token-file "$TOKEN_FILE"
+    return
+  fi
+  nohup "$python_bin" "$SERVER_SCRIPT" --dir "$DIR" --port "$SERVER_PORT" --token-file "$TOKEN_FILE" \
+    >"${DIR}/dashboard-server.out.log" 2>"${DIR}/dashboard-server.err.log" &
+}
+
 ensure_server() {
   if [[ ! -f "$SERVER_SCRIPT" ]]; then
     echo "Refresh server script not found: $SERVER_SCRIPT" >&2
@@ -79,7 +101,7 @@ ensure_server() {
       stop_stale_server
     fi
   fi
-  nohup python3 "$SERVER_SCRIPT" --dir "$DIR" --port "$SERVER_PORT" --token-file "$TOKEN_FILE" >/dev/null 2>&1 &
+  start_server
   for _ in {1..20}; do
     sleep 0.2
     if command -v curl >/dev/null 2>&1; then
