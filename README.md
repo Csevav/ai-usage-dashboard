@@ -1,8 +1,8 @@
 # @csevav/ai-usage-dashboard
 
-> 一个可视化的 **Claude Code + OpenAI Codex** 用量看板。基于 [`ccusage`](https://www.npmjs.com/package/ccusage) 增强，新增 Codex 数据、按对话排行、中文界面、北京时间等功能。当前主要支持 **Codex** 和 **Claude Code**。
+> 一个可视化的 **Claude Code + OpenAI Codex** 用量看板。基于 [`ccusage`](https://www.npmjs.com/package/ccusage) 增强，新增 Codex 数据、按对话排行、中文界面、系统本地时区等功能。当前主要支持 **Codex** 和 **Claude Code**。
 >
-> A visual usage dashboard for **Claude Code + OpenAI Codex** — built on top of [`ccusage`](https://www.npmjs.com/package/ccusage), with Codex support, per-conversation ranking, Chinese UI, Beijing time. It currently targets **Codex** and **Claude Code** workflows.
+> A visual usage dashboard for **Claude Code + OpenAI Codex** — built on top of [`ccusage`](https://www.npmjs.com/package/ccusage), with Codex support, per-conversation ranking, Chinese UI, and system-local timezone display. It currently targets **Codex** and **Claude Code** workflows.
 
 ![status: WIP](https://img.shields.io/badge/status-WIP-orange) ![license: MIT](https://img.shields.io/badge/license-MIT-blue)
 
@@ -20,7 +20,7 @@
 | 表头点击排序 | ❌ | ✅ |
 | 缓存命中 hover 说明 | ❌ | ✅ |
 | 中文 UI | ❌ | ✅ |
-| 北京时间显示 | ❌ | ✅ |
+| 系统本地时区显示 | ❌ | ✅ |
 | 周柱状图按周一日期标注 | ❌ | ✅ |
 
 ---
@@ -87,7 +87,7 @@ npx @csevav/ai-usage-dashboard --no-open
 
 - **Claude Code**：扫描 `~/.claude/projects/*/*.jsonl`（每个文件 = 一次对话），按消息 ID 去重，使用 Anthropic 当前 Claude 4 定价表本地计算每段对话费用
 - **OpenAI Codex**：调用 `npx @ccusage/codex session --json` 拿到对话级用量；从 `~/.codex/sessions/.../rollout-*.jsonl` 提取首条用户输入作为对话标题
-- 时间统一按 **Asia/Shanghai** 时区展示
+- 时间跟随使用者的系统本地时区展示
 
 ## 🤝 致谢 / Credits
 

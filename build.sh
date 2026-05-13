@@ -7,6 +7,7 @@ TEMPLATE="${DIR}/template.html"
 SERVER_PORT="${AI_USAGE_DASHBOARD_PORT:-46327}"
 SERVER_URL="http://127.0.0.1:${SERVER_PORT}"
 SERVER_SCRIPT="${DIR}/scripts/dashboard_server.py"
+TOKEN_FILE="${DIR}/.refresh-token"
 
 NO_OPEN=0
 NO_SUMMARY=0
@@ -30,24 +31,73 @@ if [[ ! -f "$TEMPLATE" ]]; then
   exit 1
 fi
 
+ensure_refresh_token() {
+  mkdir -p "$DIR"
+  if [[ ! -s "$TOKEN_FILE" ]]; then
+    python3 - "$TOKEN_FILE" <<'PY'
+import os
+import secrets
+import sys
+
+path = sys.argv[1]
+with open(path, "w", encoding="utf-8") as fh:
+    fh.write(secrets.token_urlsafe(32))
+os.chmod(path, 0o600)
+PY
+  fi
+}
+
+stop_stale_server() {
+  local pids
+  if ! command -v lsof >/dev/null 2>&1; then
+    return 0
+  fi
+  pids="$(lsof -tiTCP:"$SERVER_PORT" -sTCP:LISTEN 2>/dev/null || true)"
+  if [[ -z "$pids" ]]; then
+    return 0
+  fi
+  kill $pids 2>/dev/null || true
+  for _ in {1..20}; do
+    sleep 0.1
+    if ! lsof -tiTCP:"$SERVER_PORT" -sTCP:LISTEN >/dev/null 2>&1; then
+      return 0
+    fi
+  done
+}
+
 ensure_server() {
   if [[ ! -f "$SERVER_SCRIPT" ]]; then
     echo "Refresh server script not found: $SERVER_SCRIPT" >&2
     return 1
   fi
-  if command -v curl >/dev/null 2>&1 && curl -fsS "${SERVER_URL}/__health__" >/dev/null 2>&1; then
-    return 0
+  if command -v curl >/dev/null 2>&1; then
+    health="$(curl -fsS "${SERVER_URL}/__health__" 2>/dev/null || true)"
+    if [[ "$health" == *'"refreshAuth": "token"'* || "$health" == *'"refreshAuth":"token"'* ]]; then
+      return 0
+    fi
+    if [[ "$health" == *'"ok": true'* || "$health" == *'"ok":true'* ]]; then
+      stop_stale_server
+    fi
   fi
-  nohup python3 "$SERVER_SCRIPT" --dir "$DIR" --port "$SERVER_PORT" >/dev/null 2>&1 &
+  nohup python3 "$SERVER_SCRIPT" --dir "$DIR" --port "$SERVER_PORT" --token-file "$TOKEN_FILE" >/dev/null 2>&1 &
   for _ in {1..20}; do
     sleep 0.2
-    if command -v curl >/dev/null 2>&1 && curl -fsS "${SERVER_URL}/__health__" >/dev/null 2>&1; then
+    if command -v curl >/dev/null 2>&1; then
+      health="$(curl -fsS "${SERVER_URL}/__health__" 2>/dev/null || true)"
+    else
+      health=""
+    fi
+    if [[ "$health" == *'"refreshAuth": "token"'* || "$health" == *'"refreshAuth":"token"'* ]]; then
       return 0
     fi
   done
   echo "Failed to start local dashboard server on ${SERVER_URL}" >&2
   return 1
 }
+
+ensure_refresh_token
+DASHBOARD_REFRESH_TOKEN="$(<"$TOKEN_FILE")"
+export DASHBOARD_REFRESH_TOKEN
 
 export DAILY=$(npx --yes ccusage daily --json --breakdown)
 export WEEKLY=$(npx --yes ccusage weekly --json --breakdown)
@@ -365,6 +415,7 @@ with open(template_path, "r", encoding="utf-8") as f:
 html = html.replace("__DATA__", dump_json_for_script(payload))
 html = html.replace("__USER_NAME__", html_lib.escape(os.environ.get("USER_NAME", "User")))
 html = html.replace("__SERVER_URL__", os.environ.get("DASHBOARD_SERVER_URL", "http://127.0.0.1:46327"))
+html = html.replace("__REFRESH_TOKEN__", json.dumps(os.environ.get("DASHBOARD_REFRESH_TOKEN", "")))
 with open(out_path, "w", encoding="utf-8") as f:
     f.write(html)
 PY
@@ -380,7 +431,7 @@ monthly = json.loads(os.environ["MONTHLY"]).get("monthly", [])
 now = datetime.now()
 today_str = now.strftime("%Y-%m-%d")
 this_month = now.strftime("%Y-%m")
-cutoff_7d = (now - timedelta(days=7)).strftime("%Y-%m-%d")
+cutoff_7d = (now - timedelta(days=6)).strftime("%Y-%m-%d")
 
 today_row = next((r for r in daily if r["date"] == today_str), None)
 month_row = next((r for r in monthly if r["month"] == this_month), None)

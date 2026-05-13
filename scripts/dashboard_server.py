@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import hmac
 import json
 import os
 import subprocess
@@ -9,24 +10,28 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 
 
 class DashboardHandler(SimpleHTTPRequestHandler):
-    def __init__(self, *args, directory=None, **kwargs):
+    def __init__(self, *args, directory=None, token_file=None, server_port=None, **kwargs):
+        self.token_file = token_file
+        self.server_port = server_port
         super().__init__(*args, directory=directory, **kwargs)
 
     def do_GET(self):
         if self.path == "/__health__":
-            self._write_json(HTTPStatus.OK, {"ok": True})
+            self._write_json(HTTPStatus.OK, {"ok": True, "refreshAuth": "token"})
             return
         super().do_GET()
 
     def do_OPTIONS(self):
-        self.send_response(HTTPStatus.NO_CONTENT)
-        self._write_cors_headers()
+        self.send_response(HTTPStatus.FORBIDDEN)
         self.send_header("Content-Length", "0")
         self.end_headers()
 
     def do_POST(self):
         if self.path != "/__refresh__":
             self._write_json(HTTPStatus.NOT_FOUND, {"ok": False, "error": "Not found"})
+            return
+        if not self._authorized_refresh():
+            self._write_json(HTTPStatus.FORBIDDEN, {"ok": False, "error": "Forbidden"})
             return
         build_path = os.path.join(self.directory, "build.sh")
         try:
@@ -60,26 +65,53 @@ class DashboardHandler(SimpleHTTPRequestHandler):
     def _write_json(self, status, payload):
         body = json.dumps(payload).encode("utf-8")
         self.send_response(status)
-        self._write_cors_headers()
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
         self.end_headers()
         self.wfile.write(body)
 
-    def _write_cors_headers(self):
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+    def _authorized_refresh(self):
+        expected = self._read_token()
+        if not expected:
+            return False
+        origin = self.headers.get("Origin")
+        if origin and origin not in self._allowed_origins():
+            return False
+        supplied = self.headers.get("X-Dashboard-Token", "")
+        return hmac.compare_digest(supplied, expected)
+
+    def _allowed_origins(self):
+        port = self.server_port or self.server.server_port
+        return {f"http://127.0.0.1:{port}", f"http://localhost:{port}"}
+
+    def _read_token(self):
+        if not self.token_file:
+            return ""
+        try:
+            with open(self.token_file, "r", encoding="utf-8") as fh:
+                return fh.read().strip()
+        except OSError:
+            return ""
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--dir", required=True)
     parser.add_argument("--port", required=True, type=int)
+    parser.add_argument("--token-file", required=True)
     args = parser.parse_args()
 
-    server = ThreadingHTTPServer(("127.0.0.1", args.port), lambda *a, **kw: DashboardHandler(*a, directory=args.dir, **kw))
+    server = ThreadingHTTPServer(
+        ("127.0.0.1", args.port),
+        lambda *a, **kw: DashboardHandler(
+            *a,
+            directory=args.dir,
+            token_file=args.token_file,
+            server_port=args.port,
+            **kw,
+        ),
+    )
     try:
         server.serve_forever()
     except KeyboardInterrupt:

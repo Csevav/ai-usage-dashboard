@@ -624,6 +624,7 @@
 <script>
 const DATA = __DATA__;
 const DASHBOARD_SERVER_URL = "__SERVER_URL__";
+const DASHBOARD_REFRESH_TOKEN = __REFRESH_TOKEN__;
 
 // ── i18n ────────────────────────────────────────────────────────
 const I18N = {
@@ -694,7 +695,7 @@ const I18N = {
     refresh_success:     "已更新",
     refresh_error:       "刷新失败：{message}",
     empty_state:         "当前筛选下暂无数据",
-    sub_generated:       "更新于 {time} · 数据来源：本地 Claude Code 日志 (~/.claude/projects)",
+    sub_generated:       "更新于 {time} · 跟随系统时区 · 数据来源：本地 Claude Code 日志 (~/.claude/projects)",
   },
   en: {
     title:               "Usage Dashboard",
@@ -763,7 +764,7 @@ const I18N = {
     refresh_success:     "Updated",
     refresh_error:       "Refresh failed: {message}",
     empty_state:         "No data for the current filter",
-    sub_generated:       "Updated at {time} · data from local Claude logs (~/.claude/projects)",
+    sub_generated:       "Updated at {time} · system timezone · data from local Claude logs (~/.claude/projects)",
   },
 };
 let currentLang = localStorage.getItem("ccusage-lang") || "zh";
@@ -843,7 +844,6 @@ function formatGeneratedAt(iso) {
   const d = new Date(iso);
   if (isNaN(d)) return String(iso);
   const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Shanghai",
     year: "numeric", month: "2-digit", day: "2-digit",
     hour: "2-digit", minute: "2-digit", hour12: false,
   }).formatToParts(d);
@@ -1262,7 +1262,7 @@ function renderSessionTable(scope) {
   tbody.innerHTML = "";
   visible.forEach(s => {
     const tr = document.createElement("tr");
-    const dt = formatBeijing(s.timestamp || s.date);
+    const dt = formatLocalDateTime(s.timestamp || s.date);
     const title = s.title || t("no_title");
     const models = renderModelBadges(s.models || []);
     tr.innerHTML = `
@@ -1511,13 +1511,12 @@ function isoWeekMonday(year, week) {
 }
 const pad2 = n => String(n).padStart(2, "0");
 
-// Format an ISO timestamp as Beijing time "YYYY-MM-DD HH:MM"
-function formatBeijing(iso) {
+// Format an ISO timestamp in the browser's system timezone.
+function formatLocalDateTime(iso) {
   if (!iso) return "";
   const d = new Date(iso);
   if (isNaN(d)) return String(iso).slice(0, 16).replace("T", " ");
   const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Shanghai",
     year: "numeric", month: "2-digit", day: "2-digit",
     hour: "2-digit", minute: "2-digit", hour12: false,
   }).formatToParts(d);
@@ -1908,7 +1907,10 @@ document.getElementById("refresh-btn").addEventListener("click", async () => {
   try {
     const res = await fetch(`${DASHBOARD_SERVER_URL}/__refresh__`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "X-Dashboard-Token": DASHBOARD_REFRESH_TOKEN,
+      },
       cache: "no-store",
     });
     const payload = await res.json().catch(() => ({}));
