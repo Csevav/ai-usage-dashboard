@@ -70,6 +70,29 @@ npx @csevav/ai-usage-dashboard --no-open
 - `--no-open` — 只生成 HTML，不自动打开浏览器
 - `--no-summary` — 不在终端打印 markdown 摘要
 
+## Skill 用法 / Use as a Codex skill
+
+这个仓库现在也可以直接作为 **Codex skill** 使用。
+
+核心入口是：
+
+```bash
+bash ~/.codex/skills/usage-dashboard/build.sh
+```
+
+当用户表达这些意图时，这个 skill 很适合触发：
+
+- 想打开可视化用量看板
+- 想看 Codex / Claude Code 的 token 或费用趋势
+- 想按对话查看用量排行
+- 想要浏览器里的 dashboard，而不是纯终端输出
+
+如果你是本地维护这个 skill，关键文件是：
+
+- `SKILL.md` — skill 触发说明
+- `agents/openai.yaml` — skill 的界面名称和默认提示词
+- `build.sh` — 实际构建入口
+
 ## 🔧 依赖 / Requirements
 
 - **Node.js** ≥ 18（用于 `npx`）

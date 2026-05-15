@@ -1,0 +1,4 @@
+interface:
+  display_name: "Usage dashboard"
+  short_description: "Open a visual Codex and Claude usage dashboard"
+  default_prompt: "Use $usage-dashboard to build and open a local dashboard showing Codex and Claude Code token usage, cost trends, and per-conversation rankings."

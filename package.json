@@ -32,11 +32,15 @@
     "postinstall": "npm run copy-dashboard && npm run copy-command"
   },
   "files": [
+    "SKILL.md",
+    "agents/openai.yaml",
     "bin/",
     "build.sh",
     "template.html",
-    "scripts/",
-    "commands/",
+    "scripts/copy-dashboard.sh",
+    "scripts/copy-command.sh",
+    "scripts/dashboard_server.py",
+    "commands/ai-usage.md",
     "README.md",
     "LICENSE"
   ],
