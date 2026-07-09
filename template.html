@@ -104,6 +104,34 @@
   }
   .sub { margin: 0; }
   .toolbar-actions { display: flex; align-items: center; gap: 10px; }
+  .notice-stack {
+    display: flex; flex-direction: column; gap: 10px;
+    margin: 0 0 18px;
+  }
+  .notice-banner {
+    border-radius: 12px;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    box-shadow: var(--shadow-sm);
+  }
+  .notice-banner.warning {
+    background: linear-gradient(180deg, rgba(193, 80, 44, 0.09), var(--surface) 72%);
+    border-color: rgba(193, 80, 44, 0.22);
+  }
+  .notice-banner.error {
+    background: linear-gradient(180deg, rgba(180, 35, 24, 0.10), var(--surface) 72%);
+    border-color: rgba(180, 35, 24, 0.26);
+  }
+  .notice-banner-title {
+    font-size: 12px; font-weight: 600; color: var(--ink);
+    margin-bottom: 4px;
+  }
+  .notice-banner-body {
+    color: var(--ink-2);
+    font-size: 12.5px;
+    line-height: 1.6;
+  }
   .action-btn {
     background: var(--surface); border: 1px solid var(--border);
     border-radius: 10px; cursor: pointer; color: var(--ink);
@@ -407,6 +435,7 @@
       </button>
     </div>
   </div>
+  <div id="env-notices" class="notice-stack" hidden></div>
 
   <div class="section-title">Claude Code</div>
 
@@ -455,13 +484,14 @@
 
   <div class="card detail-card">
     <div class="detail-head">
-      <h3 data-i18n="detail_title">明细</h3>
+      <h3 data-i18n="detail_claude_title">Claude 明细</h3>
       <div class="detail-tabs" data-target="claude">
-        <button class="dtab active" data-mode="session" data-i18n="detail_session">对话</button>
+        <button class="dtab active" data-mode="project" data-i18n="detail_project">Project</button>
+        <button class="dtab" data-mode="session" data-i18n="detail_session">对话</button>
         <button class="dtab" data-mode="period" data-i18n="detail_period">时段</button>
       </div>
     </div>
-    <table id="tbl-session" class="detail-table">
+    <table id="tbl-session" class="detail-table" style="display:none">
       <colgroup>
         <col style="width:34%">
         <col style="width:20%">
@@ -489,6 +519,27 @@
           <th class="num" data-sort="output" data-i18n="col_output">输出</th>
           <th class="num" data-sort="cache_write" data-i18n="col_cache_write">缓存写入</th>
           <th class="num" data-sort="cache_read" data-i18n="col_cache_read">缓存命中</th>
+          <th data-i18n="col_models">模型</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <table id="tbl-project" class="detail-table">
+      <colgroup>
+        <col style="width:34%">
+        <col style="width:16%">
+        <col style="width:12%">
+        <col style="width:14%">
+        <col style="width:10%">
+        <col style="width:14%">
+      </colgroup>
+      <thead>
+        <tr>
+          <th data-sort="project" data-i18n="col_project">Project</th>
+          <th data-sort="date" data-i18n="col_date">日期</th>
+          <th class="num" data-sort="cost" data-i18n="col_cost">花费 ($)</th>
+          <th class="num" data-sort="tokens" data-i18n="col_tokens">Token</th>
+          <th class="num" data-sort="sessions" data-i18n="col_sessions">对话数</th>
           <th data-i18n="col_models">模型</th>
         </tr>
       </thead>
@@ -546,11 +597,12 @@
     <div class="detail-head">
       <h3 data-i18n="detail_codex_title">Codex 明细</h3>
       <div class="detail-tabs" data-target="codex">
-        <button class="dtab active" data-mode="session" data-i18n="detail_session">对话</button>
+        <button class="dtab active" data-mode="project" data-i18n="detail_project">Project</button>
+        <button class="dtab" data-mode="session" data-i18n="detail_session">对话</button>
         <button class="dtab" data-mode="period" data-i18n="detail_period">时段</button>
       </div>
     </div>
-    <table id="codex-tbl-session" class="detail-table">
+    <table id="codex-tbl-session" class="detail-table" style="display:none">
       <colgroup>
         <col style="width:34%">
         <col style="width:20%">
@@ -578,6 +630,27 @@
           <th class="num" data-sort="output" data-i18n="col_output">输出</th>
           <th class="num" data-sort="reasoning" data-i18n="col_reasoning">推理</th>
           <th class="num" data-sort="cache_read" data-i18n="col_cache_read">缓存命中</th>
+          <th data-i18n="col_models">模型</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <table id="codex-tbl-project" class="detail-table">
+      <colgroup>
+        <col style="width:34%">
+        <col style="width:16%">
+        <col style="width:12%">
+        <col style="width:14%">
+        <col style="width:10%">
+        <col style="width:14%">
+      </colgroup>
+      <thead>
+        <tr>
+          <th data-sort="project" data-i18n="col_project">Project</th>
+          <th data-sort="date" data-i18n="col_date">日期</th>
+          <th class="num" data-sort="cost" data-i18n="col_cost">花费 ($)</th>
+          <th class="num" data-sort="tokens" data-i18n="col_tokens">Token</th>
+          <th class="num" data-sort="sessions" data-i18n="col_sessions">对话数</th>
           <th data-i18n="col_models">模型</th>
         </tr>
       </thead>
@@ -614,10 +687,79 @@
     <canvas id="combined-bar" class="chart-canvas" style="max-height:260px"></canvas>
   </div>
 
+  <div class="card detail-card">
+    <div class="detail-head">
+      <h3 data-i18n="detail_combined_title">综合明细</h3>
+      <div class="detail-tabs" data-target="combined">
+        <button class="dtab active" data-mode="project" data-i18n="detail_project">Project</button>
+        <button class="dtab" data-mode="session" data-i18n="detail_session">对话</button>
+        <button class="dtab" data-mode="period" data-i18n="detail_period">时段</button>
+      </div>
+    </div>
+    <table id="combined-tbl-project" class="detail-table">
+      <colgroup>
+        <col style="width:28%">
+        <col style="width:12%">
+        <col style="width:14%">
+        <col style="width:12%">
+        <col style="width:14%">
+        <col style="width:8%">
+        <col style="width:12%">
+      </colgroup>
+      <thead>
+        <tr>
+          <th data-sort="project" data-i18n="col_project">Project</th>
+          <th data-sort="source" data-i18n="col_source">来源</th>
+          <th data-sort="date" data-i18n="col_date">日期</th>
+          <th class="num" data-sort="cost" data-i18n="col_cost">花费 ($)</th>
+          <th class="num" data-sort="tokens" data-i18n="col_tokens">Token</th>
+          <th class="num" data-sort="sessions" data-i18n="col_sessions">对话数</th>
+          <th data-i18n="col_models">模型</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <table id="combined-tbl-session" class="detail-table" style="display:none">
+      <colgroup>
+        <col style="width:10%">
+        <col style="width:30%">
+        <col style="width:18%">
+        <col style="width:12%">
+        <col style="width:14%">
+        <col style="width:16%">
+      </colgroup>
+      <thead>
+        <tr>
+          <th data-sort="source" data-i18n="col_source">来源</th>
+          <th data-sort="title" data-i18n="col_title">标题</th>
+          <th data-sort="date" data-i18n="col_date">日期</th>
+          <th class="num" data-sort="cost" data-i18n="col_cost">花费 ($)</th>
+          <th class="num" data-sort="tokens" data-i18n="col_tokens">Token</th>
+          <th data-i18n="col_models">模型</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <table id="combined-tbl" class="detail-table" style="display:none">
+      <thead>
+        <tr>
+          <th data-sort="period" data-i18n="col_period">时段</th>
+          <th class="num" data-sort="claude_cost" data-i18n="col_claude_cost">Claude 花费</th>
+          <th class="num" data-sort="codex_cost" data-i18n="col_codex_cost">Codex 花费</th>
+          <th class="num" data-sort="cost" data-i18n="col_total_cost">合计花费</th>
+          <th class="num" data-sort="claude_tokens" data-i18n="col_claude_tokens">Claude Token</th>
+          <th class="num" data-sort="codex_tokens" data-i18n="col_codex_tokens">Codex Token</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <button class="show-more" id="combined-show-more" style="display:none" data-i18n="show_all">查看全部</button>
+  </div>
+
   <footer class="footer">
     <span><a href="https://github.com/Csevav/ai-usage-dashboard" target="_blank" rel="noopener">GitHub</a> &middot; <a href="https://www.npmjs.com/package/@csevav/ai-usage-dashboard" target="_blank" rel="noopener">npm</a></span>
     <span>&copy; <span id="footer-year"></span> <span data-i18n="footer_brand">Claude 用量看板</span></span>
-    <span data-i18n-html="footer_built">由 <a href="https://github.com/Csevav" target="_blank" rel="noopener">Luke Mei</a> 打造 &middot; 数据来源：本地 Claude Code 日志</span>
+    <span data-i18n-html="footer_built">由 <a href="https://github.com/Csevav" target="_blank" rel="noopener">Luke Mei</a> 打造 &middot; 数据来源：本地 Claude Code 和 Codex 日志</span>
   </footer>
 </div>
 
@@ -656,11 +798,19 @@ const I18N = {
     chart_cost_share:    "各模型花费占比",
     chart_combined:      "花费对比 — Claude vs Codex",
     detail_title:        "明细",
+    detail_claude_title: "Claude 明细",
     detail_codex_title:  "Codex 明细",
+    detail_combined_title:"综合明细",
     detail_session:      "对话",
+    detail_project:      "Project",
     detail_period:       "时段",
     col_period:          "时段",
+    col_project:         "Project",
+    col_source:          "来源",
     col_cost:            "花费 ($)",
+    col_claude_cost:     "Claude 花费",
+    col_codex_cost:      "Codex 花费",
+    col_total_cost:      "合计花费",
     col_input:           "输入",
     col_output:          "输出",
     col_cache_write:     "缓存写入",
@@ -670,6 +820,9 @@ const I18N = {
     col_title:           "标题",
     col_date:            "日期",
     col_tokens:          "Token",
+    col_claude_tokens:   "Claude Token",
+    col_codex_tokens:    "Codex Token",
+    col_sessions:        "对话数",
     section_combined:    "综合对比",
     cmp_claude:          "Claude 总花费",
     cmp_codex:           "Codex 总花费",
@@ -678,7 +831,7 @@ const I18N = {
     show_collapse:       "收起",
     no_title:            "(无标题)",
     footer_brand:        "Claude 用量看板",
-    footer_built:        '由 <a href="https://github.com/Csevav" target="_blank" rel="noopener">Luke Mei</a> 打造 · 数据来源：本地 Claude Code 日志',
+    footer_built:        '由 <a href="https://github.com/Csevav" target="_blank" rel="noopener">Luke Mei</a> 打造 · 数据来源：本地 Claude Code 和 Codex 日志',
     period_today:        "今日",
     period_daily:        "每日",
     period_weekly:       "每周",
@@ -695,10 +848,12 @@ const I18N = {
     refresh_success:     "已更新",
     refresh_error:       "刷新失败：{message}",
     empty_state:         "当前筛选下暂无数据",
-    sub_generated:       "更新于 {time} · 跟随系统时区 · 数据来源：本地 Claude Code 日志 (~/.claude/projects)",
+    sub_generated:       "更新于 {time} · 跟随系统时区 · 数据来源：本地 Claude Code 日志 (~/.claude/projects) + Codex 日志 (~/.codex/sessions)",
+    notice_title_warning:"环境提示",
+    notice_title_error:  "环境错误",
   },
   en: {
-    title:               "Usage Dashboard",
+    title:               "AI Usage Dashboard",
     theme_toggle:        "Toggle theme",
     lang_toggle:         "中",
     tab_today:           "Today",
@@ -725,11 +880,19 @@ const I18N = {
     chart_cost_share:    "Cost share by model",
     chart_combined:      "Cost — Claude vs Codex",
     detail_title:        "Breakdown",
+    detail_claude_title: "Claude breakdown",
     detail_codex_title:  "Codex breakdown",
+    detail_combined_title:"Combined breakdown",
     detail_session:      "By session",
+    detail_project:      "By project",
     detail_period:       "By period",
     col_period:          "Period",
+    col_project:         "Project",
+    col_source:          "Source",
     col_cost:            "Cost ($)",
+    col_claude_cost:     "Claude cost",
+    col_codex_cost:      "Codex cost",
+    col_total_cost:      "Total cost",
     col_input:           "Input",
     col_output:          "Output",
     col_cache_write:     "Cache write",
@@ -739,6 +902,9 @@ const I18N = {
     col_title:           "Title",
     col_date:            "Date",
     col_tokens:          "Tokens",
+    col_claude_tokens:   "Claude tokens",
+    col_codex_tokens:    "Codex tokens",
+    col_sessions:        "Sessions",
     section_combined:    "Side-by-side comparison",
     cmp_claude:          "Claude total",
     cmp_codex:           "Codex total",
@@ -747,7 +913,7 @@ const I18N = {
     show_collapse:       "Collapse",
     no_title:            "(untitled)",
     footer_brand:        "AI Usage Dashboard",
-    footer_built:        'Built by <a href="https://github.com/Csevav" target="_blank" rel="noopener">Luke Mei</a> · Data: local Claude Code logs',
+    footer_built:        'Built by <a href="https://github.com/Csevav" target="_blank" rel="noopener">Luke Mei</a> · Data: local Claude Code and Codex logs',
     period_today:        "Today",
     period_daily:        "Daily",
     period_weekly:       "Weekly",
@@ -764,7 +930,9 @@ const I18N = {
     refresh_success:     "Updated",
     refresh_error:       "Refresh failed: {message}",
     empty_state:         "No data for the current filter",
-    sub_generated:       "Updated at {time} · system timezone · data from local Claude logs (~/.claude/projects)",
+    sub_generated:       "Updated at {time} · system timezone · data from local Claude Code logs (~/.claude/projects) + Codex logs (~/.codex/sessions)",
+    notice_title_warning:"Environment notice",
+    notice_title_error:  "Environment error",
   },
 };
 let currentLang = localStorage.getItem("ccusage-lang") || "zh";
@@ -891,6 +1059,10 @@ function renderModelBadges(models) {
   return `<div class="model-cell" data-full="${title}">${chips.join("")}</div>`;
 }
 
+function renderSourceBadges(sources) {
+  return renderModelBadges((sources || []).map(source => source === "claude" ? "Claude" : source === "codex" ? "Codex" : source));
+}
+
 function barLayoutForCount(count) {
   if (count <= 1) return { maxBarThickness: 160, categoryPercentage: 0.42, barPercentage: 0.9 };
   if (count === 2) return { maxBarThickness: 108, categoryPercentage: 0.5, barPercentage: 0.88 };
@@ -986,6 +1158,15 @@ function rowsForScope(scope, grain, range, year) {
   });
 }
 
+function summaryForScope(scope, range, year) {
+  const source = scope === "codex" ? CODEX : DATA;
+  const summary = source.summary || {};
+  if (range === "year") {
+    return (summary.years || {})[String(year || selectedYearForScope(scope))] || null;
+  }
+  return (summary.ranges || {})[range] || summary.all || null;
+}
+
 // Stable color per model: assigned once from the union of models across all views,
 // ordered by total lifetime cost desc, so the priciest model keeps slot 0 across tabs.
 const MODEL_COLOR = (() => {
@@ -1042,12 +1223,13 @@ function render(range) {
   const grain = GRAIN_STATE.claude;
   const rows = rowsForScope("claude", grain, range, selectedYear);
   const dailyRows = rowsForScope("claude", "daily", range, selectedYear);
+  const summary = summaryForScope("claude", range, selectedYear);
   const keyField = GRAIN_KEY[grain];
   const hasRows = rows.length > 0;
 
-  const totalCost   = dailyRows.reduce((s, r) => s + (r.totalCost || 0), 0);
-  const totalTokens = dailyRows.reduce((s, r) => s + (r.totalTokens || 0), 0);
-  const cacheRead   = dailyRows.reduce((s, r) => s + (r.cacheReadTokens || 0), 0);
+  const totalCost   = summary ? (summary.cost || 0) : dailyRows.reduce((s, r) => s + (r.totalCost || 0), 0);
+  const totalTokens = summary ? (summary.tokens || 0) : dailyRows.reduce((s, r) => s + (r.totalTokens || 0), 0);
+  const cacheRead   = summary ? (summary.cacheRead || 0) : dailyRows.reduce((s, r) => s + (r.cacheReadTokens || 0), 0);
   document.getElementById("kpi-cost").textContent    = fmtUsd(totalCost);
   document.getElementById("kpi-tokens").textContent  = fmtNum(totalTokens);
   document.getElementById("kpi-cache").textContent   = fmtNum(cacheRead);
@@ -1185,6 +1367,31 @@ document.querySelectorAll("#claude-grain-tabs .tab").forEach(btn => {
 yearSelect.disabled = true;
 
 function applySubText() { document.getElementById("sub").textContent = t("sub_generated", { time: formatGeneratedAt(DATA.generatedAt) }); }
+
+function renderEnvironmentNotices() {
+  const host = document.getElementById("env-notices");
+  if (!host) return;
+  const notices = Array.isArray(DATA.notices) ? DATA.notices : [];
+  if (!notices.length) {
+    host.hidden = true;
+    host.innerHTML = "";
+    return;
+  }
+  host.hidden = false;
+  host.innerHTML = notices.map(item => {
+    const level = item && item.level === "error" ? "error" : "warning";
+    const titleKey = level === "error" ? "notice_title_error" : "notice_title_warning";
+    const body = currentLang === "en"
+      ? (item.en || item.zh || "")
+      : (item.zh || item.en || "");
+    return `
+      <section class="notice-banner ${level}">
+        <div class="notice-banner-title">${escapeHtml(t(titleKey))}</div>
+        <div class="notice-banner-body">${escapeHtml(body)}</div>
+      </section>
+    `;
+  }).join("");
+}
 applySubText();
 document.getElementById("footer-year").textContent = new Date().getFullYear();
 
@@ -1212,23 +1419,46 @@ render("today");
 // ── Conversation detail tables (sortable, top-10, expandable) ──
 const SESSION_TABLE_LIMIT = 10;
 const SESSION_STATE = {
-  claude: { sort: "cost", dir: "desc", expanded: false, periodSort: "period", periodDir: "desc", periodExpanded: false, mode: "session" },
-  codex:  { sort: "cost", dir: "desc", expanded: false, periodSort: "period", periodDir: "desc", periodExpanded: false, mode: "session" },
+  claude: { sort: "cost", dir: "desc", expanded: false, projectSort: "cost", projectDir: "desc", projectExpanded: false, periodSort: "period", periodDir: "desc", periodExpanded: false, mode: "project" },
+  codex:  { sort: "cost", dir: "desc", expanded: false, projectSort: "cost", projectDir: "desc", projectExpanded: false, periodSort: "period", periodDir: "desc", periodExpanded: false, mode: "project" },
+  combined: { sort: "cost", dir: "desc", expanded: false, projectSort: "cost", projectDir: "desc", projectExpanded: false, periodSort: "cost", periodDir: "desc", periodExpanded: false, mode: "project" },
 };
 
+function sourceName(source) {
+  return source === "claude" ? "Claude" : source === "codex" ? "Codex" : source;
+}
+
+function detailTables(scope) {
+  if (scope === "claude") {
+    return { session: "tbl-session", project: "tbl-project", period: "tbl", more: "claude-show-more" };
+  }
+  if (scope === "codex") {
+    return { session: "codex-tbl-session", project: "codex-tbl-project", period: "codex-tbl", more: "codex-show-more" };
+  }
+  return { session: "combined-tbl-session", project: "combined-tbl-project", period: "combined-tbl", more: "combined-show-more" };
+}
+
+function sessionsForDetail(scope) {
+  if (scope === "combined") {
+    const range = activeViewForScope(scope);
+    const year = selectedYearForScope(scope);
+    const claude = sessionsForView(DATA.sessions || [], range, year).map(s => ({ ...s, source: "claude" }));
+    const codex = sessionsForView(CODEX.sessions || [], range, year).map(s => ({ ...s, source: "codex" }));
+    return [...claude, ...codex];
+  }
+  const sessions = scope === "claude" ? (DATA.sessions || []) : (CODEX.sessions || []);
+  return sessionsForView(sessions, activeViewForScope(scope), selectedYearForScope(scope));
+}
+
 function renderSessionTable(scope) {
-  const cfg = scope === "claude"
-    ? { sessions: DATA.sessions || [], tableId: "tbl-session", moreId: "claude-show-more" }
-    : { sessions: CODEX.sessions || [], tableId: "codex-tbl-session", moreId: "codex-show-more" };
+  const ids = detailTables(scope);
   const st = SESSION_STATE[scope];
-  const tbl = document.getElementById(cfg.tableId);
+  const tbl = document.getElementById(ids.session);
   if (!tbl) return;
   const tbody = tbl.querySelector("tbody");
   const thead = tbl.querySelector("thead");
-  const more  = document.getElementById(cfg.moreId);
-  const view = activeViewForScope(scope);
-  const year = selectedYearForScope(scope);
-  const scopedSessions = sessionsForView(cfg.sessions, view, year);
+  const more  = document.getElementById(ids.more);
+  const scopedSessions = sessionsForDetail(scope);
 
   // Update sort indicator on headers
   thead.querySelectorAll("th[data-sort]").forEach(th => {
@@ -1238,6 +1468,7 @@ function renderSessionTable(scope) {
 
   const keyOf = {
     title:  s => (s.title || "").toLowerCase(),
+    source: s => sourceName(s.source || "").toLowerCase(),
     date:   s => s.timestamp || s.date || "",
     cost:   s => s.costUSD || 0,
     tokens: s => s.totalTokens || 0,
@@ -1254,7 +1485,7 @@ function renderSessionTable(scope) {
   const visible = st.expanded ? sorted : sorted.slice(0, SESSION_TABLE_LIMIT);
 
   if (!total) {
-    renderEmptyTable(tbody, 5);
+    renderEmptyTable(tbody, scope === "combined" ? 6 : 5);
     more.style.display = "none";
     return;
   }
@@ -1265,13 +1496,24 @@ function renderSessionTable(scope) {
     const dt = formatLocalDateTime(s.timestamp || s.date);
     const title = s.title || t("no_title");
     const models = renderModelBadges(s.models || []);
-    tr.innerHTML = `
-      <td><div class="title-cell" title="${escapeHtml(title)}">${escapeHtml(title)}</div></td>
-      <td class="date-cell">${dt || "—"}</td>
-      <td class="num">${fmtUsd(s.costUSD)}</td>
-      <td class="num">${fmtNum(s.totalTokens)}</td>
-      <td>${models}</td>
-    `;
+    if (scope === "combined") {
+      tr.innerHTML = `
+        <td>${renderSourceBadges([s.source])}</td>
+        <td><div class="title-cell" title="${escapeHtml(title)}">${escapeHtml(title)}</div></td>
+        <td class="date-cell">${dt || "—"}</td>
+        <td class="num">${fmtUsd(s.costUSD)}</td>
+        <td class="num">${fmtNum(s.totalTokens)}</td>
+        <td>${models}</td>
+      `;
+    } else {
+      tr.innerHTML = `
+        <td><div class="title-cell" title="${escapeHtml(title)}">${escapeHtml(title)}</div></td>
+        <td class="date-cell">${dt || "—"}</td>
+        <td class="num">${fmtUsd(s.costUSD)}</td>
+        <td class="num">${fmtNum(s.totalTokens)}</td>
+        <td>${models}</td>
+      `;
+    }
     tbody.appendChild(tr);
   });
 
@@ -1290,21 +1532,177 @@ function periodRowsForDetail(scope) {
   return rowsForScope(scope, grain, range, year);
 }
 
-function renderPeriodTable(scope) {
+function projectRowsForDetail(scope) {
+  const rows = sessionsForDetail(scope);
+  const projects = new Map();
+  for (const s of rows) {
+    const name = s.project || "unknown";
+    if (!projects.has(name)) {
+      projects.set(name, {
+        project: name,
+        sessions: 0,
+        costUSD: 0,
+        totalTokens: 0,
+        lastTimestamp: "",
+        models: new Set(),
+        sources: new Set(),
+      });
+    }
+    const item = projects.get(name);
+    item.sessions += 1;
+    item.costUSD += s.costUSD || 0;
+    item.totalTokens += s.totalTokens || 0;
+    const ts = s.timestamp || s.date || "";
+    if (ts > item.lastTimestamp) item.lastTimestamp = ts;
+    for (const model of (s.models || [])) item.models.add(model);
+    if (s.source) item.sources.add(s.source);
+  }
+  return [...projects.values()].map(item => ({
+    ...item,
+    models: [...item.models].sort(),
+    sources: [...item.sources].sort(),
+    date: (item.lastTimestamp || "").slice(0, 10),
+  }));
+}
+
+function renderProjectTable(scope) {
   const st = SESSION_STATE[scope];
-  const tbl = document.getElementById(scope === "claude" ? "tbl" : "codex-tbl");
-  const more = document.getElementById(scope === "claude" ? "claude-show-more" : "codex-show-more");
+  const ids = detailTables(scope);
+  const tbl = document.getElementById(ids.project);
+  const more = document.getElementById(ids.more);
   if (!tbl || !more) return;
   const tbody = tbl.querySelector("tbody");
   const thead = tbl.querySelector("thead");
-  const rows = periodRowsForDetail(scope);
+  const rows = projectRowsForDetail(scope);
+
+  thead.querySelectorAll("th[data-sort]").forEach(th => {
+    th.classList.remove("sorted-asc", "sorted-desc");
+    if (th.dataset.sort === st.projectSort) th.classList.add("sorted-" + st.projectDir);
+  });
+
+  const valueOf = {
+    project: r => (r.project || "").toLowerCase(),
+    source: r => (r.sources || []).join(","),
+    date: r => r.lastTimestamp || r.date || "",
+    cost: r => r.costUSD || 0,
+    tokens: r => r.totalTokens || 0,
+    sessions: r => r.sessions || 0,
+  };
+  const get = valueOf[st.projectSort] || valueOf.cost;
+  const sorted = [...rows].sort((a, b) => {
+    const va = get(a), vb = get(b);
+    if (va < vb) return st.projectDir === "asc" ? -1 : 1;
+    if (va > vb) return st.projectDir === "asc" ? 1 : -1;
+    return 0;
+  });
+  const total = sorted.length;
+  const visible = st.projectExpanded ? sorted : sorted.slice(0, SESSION_TABLE_LIMIT);
+
+  if (!total) {
+    renderEmptyTable(tbody, scope === "combined" ? 7 : 6);
+    more.style.display = "none";
+    return;
+  }
+
+  tbody.innerHTML = "";
+  visible.forEach(r => {
+    const tr = document.createElement("tr");
+    if (scope === "combined") {
+      tr.innerHTML = `
+        <td><div class="title-cell" title="${escapeHtml(r.project)}">${escapeHtml(r.project)}</div></td>
+        <td>${renderSourceBadges(r.sources || [])}</td>
+        <td class="date-cell">${formatLocalDateTime(r.lastTimestamp || r.date) || "—"}</td>
+        <td class="num">${fmtUsd(r.costUSD)}</td>
+        <td class="num">${fmtNum(r.totalTokens)}</td>
+        <td class="num">${fmtNum(r.sessions)}</td>
+        <td>${renderModelBadges(r.models || [])}</td>
+      `;
+    } else {
+      tr.innerHTML = `
+        <td><div class="title-cell" title="${escapeHtml(r.project)}">${escapeHtml(r.project)}</div></td>
+        <td class="date-cell">${formatLocalDateTime(r.lastTimestamp || r.date) || "—"}</td>
+        <td class="num">${fmtUsd(r.costUSD)}</td>
+        <td class="num">${fmtNum(r.totalTokens)}</td>
+        <td class="num">${fmtNum(r.sessions)}</td>
+        <td>${renderModelBadges(r.models || [])}</td>
+      `;
+    }
+    tbody.appendChild(tr);
+  });
+
+  if (total > SESSION_TABLE_LIMIT) {
+    more.style.display = "block";
+    more.textContent = st.projectExpanded ? t("show_collapse") : `${t("show_all")}（${total}）`;
+  } else {
+    more.style.display = "none";
+  }
+}
+
+function combinedPeriodRowsForDetail() {
+  const range = activeViewForScope("combined");
+  const year = selectedYearForScope("combined");
+  const grain = GRAIN_STATE.combined;
+  const rows = new Map();
+
+  const ensure = (key, label) => {
+    if (!rows.has(key)) {
+      rows.set(key, {
+        period: label || key,
+        claudeCost: 0,
+        codexCost: 0,
+        costUSD: 0,
+        claudeTokens: 0,
+        codexTokens: 0,
+      });
+    }
+    return rows.get(key);
+  };
+
+  for (const row of rowsForScope("claude", grain, range, year)) {
+    const raw = rowPeriodRaw("claude", grain, row);
+    const key = normalizePeriodKey(grain, raw);
+    const item = ensure(key, raw);
+    item.claudeCost += row.totalCost || 0;
+    item.claudeTokens += row.totalTokens || 0;
+    item.costUSD += row.totalCost || 0;
+  }
+  for (const row of rowsForScope("codex", grain, range, year)) {
+    const raw = rowPeriodRaw("codex", grain, row);
+    const key = normalizePeriodKey(grain, raw);
+    const item = ensure(key, raw);
+    item.codexCost += row.costUSD || 0;
+    item.codexTokens += row.totalTokens || 0;
+    item.costUSD += row.costUSD || 0;
+  }
+
+  return [...rows.values()];
+}
+
+function renderPeriodTable(scope) {
+  const st = SESSION_STATE[scope];
+  const ids = detailTables(scope);
+  const tbl = document.getElementById(ids.period);
+  const more = document.getElementById(ids.more);
+  if (!tbl || !more) return;
+  const tbody = tbl.querySelector("tbody");
+  const thead = tbl.querySelector("thead");
+  const rows = scope === "combined" ? combinedPeriodRowsForDetail() : periodRowsForDetail(scope);
 
   thead.querySelectorAll("th[data-sort]").forEach(th => {
     th.classList.remove("sorted-asc", "sorted-desc");
     if (th.dataset.sort === st.periodSort) th.classList.add("sorted-" + st.periodDir);
   });
 
-  const valueOf = scope === "claude"
+  const valueOf = scope === "combined"
+    ? {
+        period: r => r.period || "",
+        claude_cost: r => r.claudeCost || 0,
+        codex_cost: r => r.codexCost || 0,
+        cost: r => r.costUSD || 0,
+        claude_tokens: r => r.claudeTokens || 0,
+        codex_tokens: r => r.codexTokens || 0,
+      }
+    : scope === "claude"
     ? {
         period: r => rowPeriodRaw("claude", GRAIN_STATE.claude, r),
         cost: r => r.totalCost || 0,
@@ -1332,7 +1730,7 @@ function renderPeriodTable(scope) {
   const visible = st.periodExpanded ? sorted : sorted.slice(0, SESSION_TABLE_LIMIT);
 
   if (!total) {
-    renderEmptyTable(tbody, 7);
+    renderEmptyTable(tbody, scope === "combined" ? 6 : 7);
     more.style.display = "none";
     return;
   }
@@ -1340,7 +1738,16 @@ function renderPeriodTable(scope) {
   tbody.innerHTML = "";
   visible.forEach(r => {
     const tr = document.createElement("tr");
-    if (scope === "claude") {
+    if (scope === "combined") {
+      tr.innerHTML = `
+        <td>${escapeHtml(r.period || "")}</td>
+        <td class="num">${fmtUsd(r.claudeCost)}</td>
+        <td class="num">${fmtUsd(r.codexCost)}</td>
+        <td class="num">${fmtUsd(r.costUSD)}</td>
+        <td class="num">${fmtNum(r.claudeTokens)}</td>
+        <td class="num">${fmtNum(r.codexTokens)}</td>
+      `;
+    } else if (scope === "claude") {
       tr.innerHTML = `
         <td>${escapeHtml(rowPeriodRaw("claude", GRAIN_STATE.claude, r))}</td>
         <td class="num">${fmtUsd(r.totalCost)}</td>
@@ -1383,13 +1790,17 @@ function syncDetailTabsUI(scope) {
 
 function applyDetailMode(scope) {
   const st = SESSION_STATE[scope];
-  const tableSession = document.getElementById(scope === "claude" ? "tbl-session" : "codex-tbl-session");
-  const tablePeriod  = document.getElementById(scope === "claude" ? "tbl" : "codex-tbl");
-  const more         = document.getElementById(scope === "claude" ? "claude-show-more" : "codex-show-more");
-  if (!tableSession || !tablePeriod || !more) return;
+  const ids = detailTables(scope);
+  const tableSession = document.getElementById(ids.session);
+  const tablePeriod  = document.getElementById(ids.period);
+  const tableProject = document.getElementById(ids.project);
+  const more         = document.getElementById(ids.more);
+  if (!tableSession || !tablePeriod || !tableProject || !more) return;
   tableSession.style.display = st.mode === "session" ? "" : "none";
+  tableProject.style.display = st.mode === "project" ? "" : "none";
   tablePeriod.style.display  = st.mode === "period" ? "" : "none";
   if (st.mode === "session") renderSessionTable(scope);
+  else if (st.mode === "project") renderProjectTable(scope);
   else renderPeriodTable(scope);
 }
 
@@ -1402,7 +1813,8 @@ function refreshDetailForScope(scope, opts = {}) {
 function wireDetailCard(scope) {
   const tabs = document.querySelector(`.detail-tabs[data-target="${scope}"]`);
   if (!tabs) return;
-  const more         = document.getElementById(scope === "claude" ? "claude-show-more" : "codex-show-more");
+  const ids = detailTables(scope);
+  const more = document.getElementById(ids.more);
   const st = SESSION_STATE[scope];
   tabs.querySelectorAll(".dtab").forEach(btn => {
     btn.addEventListener("click", () => {
@@ -1412,9 +1824,7 @@ function wireDetailCard(scope) {
     });
   });
 
-  const sessionHead = (scope === "claude"
-    ? document.getElementById("tbl-session")
-    : document.getElementById("codex-tbl-session")).querySelector("thead");
+  const sessionHead = document.getElementById(ids.session).querySelector("thead");
   sessionHead.querySelectorAll("th[data-sort]").forEach(th => {
     th.addEventListener("click", () => {
       const k = th.dataset.sort;
@@ -1424,9 +1834,7 @@ function wireDetailCard(scope) {
     });
   });
 
-  const periodHead = (scope === "claude"
-    ? document.getElementById("tbl")
-    : document.getElementById("codex-tbl")).querySelector("thead");
+  const periodHead = document.getElementById(ids.period).querySelector("thead");
   periodHead.querySelectorAll("th[data-sort]").forEach(th => {
     th.addEventListener("click", () => {
       const k = th.dataset.sort;
@@ -1436,10 +1844,23 @@ function wireDetailCard(scope) {
     });
   });
 
+  const projectHead = document.getElementById(ids.project).querySelector("thead");
+  projectHead.querySelectorAll("th[data-sort]").forEach(th => {
+    th.addEventListener("click", () => {
+      const k = th.dataset.sort;
+      if (st.projectSort === k) st.projectDir = st.projectDir === "asc" ? "desc" : "asc";
+      else { st.projectSort = k; st.projectDir = k === "project" ? "asc" : "desc"; }
+      renderProjectTable(scope);
+    });
+  });
+
   more.addEventListener("click", () => {
     if (st.mode === "session") {
       st.expanded = !st.expanded;
       renderSessionTable(scope);
+    } else if (st.mode === "project") {
+      st.projectExpanded = !st.projectExpanded;
+      renderProjectTable(scope);
     } else {
       st.periodExpanded = !st.periodExpanded;
       renderPeriodTable(scope);
@@ -1630,11 +2051,12 @@ function renderCodex(range) {
   const grain = GRAIN_STATE.codex;
   const rows = codexRowsForView(grain, range);
   const dailyRows = codexRowsForView("daily", range);
+  const summary = summaryForScope("codex", range, codexSelectedYear);
   const hasRows = rows.length > 0;
 
-  const totalCost   = dailyRows.reduce((s, r) => s + (r.costUSD || 0), 0);
-  const totalTokens = dailyRows.reduce((s, r) => s + (r.totalTokens || 0), 0);
-  const cacheRead   = dailyRows.reduce((s, r) => s + (r.cachedInputTokens || 0), 0);
+  const totalCost   = summary ? (summary.cost || 0) : dailyRows.reduce((s, r) => s + (r.costUSD || 0), 0);
+  const totalTokens = summary ? (summary.tokens || 0) : dailyRows.reduce((s, r) => s + (r.totalTokens || 0), 0);
+  const cacheRead   = summary ? (summary.cacheRead || 0) : dailyRows.reduce((s, r) => s + (r.cachedInputTokens || 0), 0);
   document.getElementById("codex-kpi-cost").textContent    = fmtUsd(totalCost);
   document.getElementById("codex-kpi-tokens").textContent  = fmtNum(totalTokens);
   document.getElementById("codex-kpi-cache").textContent   = fmtNum(cacheRead);
@@ -1744,8 +2166,9 @@ function renderCombined() {
   const year = combinedSelectedYear;
   const claudeRows = rowsForScope("claude", grain, range, year);
   const codexRows = rowsForScope("codex", grain, range, year);
-  const claudeDailyRows = rowsForScope("claude", "daily", range, year);
-  const codexDailyRows = rowsForScope("codex", "daily", range, year);
+  const claudeSummary = summaryForScope("claude", range, year);
+  const codexSummary = summaryForScope("codex", range, year);
+  const combinedSummary = ((DATA.combined || {}).summary || {});
 
   const claudeMap = new Map(claudeRows.map(row => [normalizePeriodKey(grain, rowPeriodRaw("claude", grain, row)), row.totalCost || 0]));
   const codexMap = new Map(codexRows.map(row => {
@@ -1755,13 +2178,20 @@ function renderCombined() {
   const allKeys = [...new Set([...claudeMap.keys(), ...codexMap.keys()])].sort();
   const labels = allKeys.map(key => formatChartLabel(grain, key));
   const hasRows = allKeys.length > 0;
-  const claudeTotal = claudeDailyRows.reduce((a, b) => a + (b.totalCost || 0), 0);
-  const codexTotal = codexDailyRows.reduce((a, b) => a + (b.costUSD || 0), 0);
+  const claudeTotal = claudeSummary ? (claudeSummary.cost || 0) : rowsForScope("claude", "daily", range, year).reduce((a, b) => a + (b.totalCost || 0), 0);
+  const codexTotal = codexSummary ? (codexSummary.cost || 0) : rowsForScope("codex", "daily", range, year).reduce((a, b) => a + (b.costUSD || 0), 0);
+  const summedTotal = claudeTotal + codexTotal;
+  const fallbackCombined = range === "year"
+    ? (((combinedSummary.years || {})[String(year)] || {}).cost)
+    : (((combinedSummary.ranges || {})[range] || {}).cost);
+  const combinedTotal = Number.isFinite(summedTotal)
+    ? summedTotal
+    : (Number.isFinite(fallbackCombined) ? fallbackCombined : 0);
   const barLayout = barLayoutForCount(allKeys.length);
   const periodLabel = t({ daily: "period_daily", weekly: "period_weekly", monthly: "period_monthly" }[grain] || "period_daily");
   document.getElementById("cmp-claude").textContent = fmtUsd(claudeTotal);
   document.getElementById("cmp-codex").textContent  = fmtUsd(codexTotal);
-  document.getElementById("cmp-total").textContent  = fmtUsd(claudeTotal + codexTotal);
+  document.getElementById("cmp-total").textContent  = fmtUsd(combinedTotal);
   document.querySelector("[data-i18n='chart_combined']").textContent = t("chart_combined_fmt", { period: periodLabel });
   setChartEmptyState("combined-bar", "combined-bar-empty", hasRows);
 
@@ -1878,12 +2308,14 @@ document.querySelectorAll("#combined-tabs .tab").forEach(btn => {
     btn.classList.add("active");
     combinedYearSelect.disabled = btn.dataset.range !== "year";
     renderCombined();
+    refreshDetailForScope("combined");
   });
 });
 
 combinedYearSelect.addEventListener("change", () => {
   combinedSelectedYear = combinedYearSelect.value;
   renderCombined();
+  refreshDetailForScope("combined");
 });
 
 document.querySelectorAll("#combined-grain-tabs .tab").forEach(btn => {
@@ -1892,18 +2324,22 @@ document.querySelectorAll("#combined-grain-tabs .tab").forEach(btn => {
     btn.classList.add("active");
     GRAIN_STATE.combined = btn.dataset.grain;
     renderCombined();
+    refreshDetailForScope("combined");
   });
 });
 
 document.getElementById("theme-toggle").addEventListener("click", () => {
   renderCodex(codexCurrentRange());
   renderCombined();
+  refreshDetailForScope("combined");
 });
 
 document.getElementById("refresh-btn").addEventListener("click", async () => {
   const btn = document.getElementById("refresh-btn");
   btn.disabled = true;
+  btn.classList.add("loading");
   setRefreshStatus("loading");
+  let willReload = false;
   try {
     const res = await fetch(`${DASHBOARD_SERVER_URL}/__refresh__`, {
       method: "POST",
@@ -1918,12 +2354,16 @@ document.getElementById("refresh-btn").addEventListener("click", async () => {
       throw new Error(payload.error || `HTTP ${res.status}`);
     }
     setRefreshStatus("success");
+    willReload = true;
     window.location.href = `${window.location.pathname}?t=${Date.now()}`;
   } catch (err) {
     const msg = String(err && err.message ? err.message : err).replace(/\s+/g, " ").trim();
     setRefreshStatus("error", msg);
   } finally {
-    btn.disabled = false;
+    if (!willReload) {
+      btn.classList.remove("loading");
+      btn.disabled = false;
+    }
   }
 });
 
@@ -1931,16 +2371,19 @@ renderCodex("today");
 combinedYearSelect.disabled = combinedCurrentRange() !== "year";
 renderCombined();
 wireDetailCard("codex");
+wireDetailCard("combined");
 
 // ── Language wire-up ────────────────────────────────────────────
 function rerenderAll() {
   applySubText();
+  renderEnvironmentNotices();
   render(currentRange());
   renderCodex(codexCurrentRange());
   renderCombined();
   // Refresh detail tables (which may include translated headers / titles)
-  renderSessionTable("claude");
-  renderSessionTable("codex");
+  refreshDetailForScope("claude");
+  refreshDetailForScope("codex");
+  refreshDetailForScope("combined");
 }
 applyLanguage(currentLang); // initial apply (also re-renders)
 document.querySelectorAll(".lang-toggle button[data-lang]").forEach(btn => {

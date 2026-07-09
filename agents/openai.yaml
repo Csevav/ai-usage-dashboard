@@ -1,4 +1,4 @@
 interface:
-  display_name: "Usage dashboard"
-  short_description: "Open a visual Codex and Claude usage dashboard"
-  default_prompt: "Use $usage-dashboard to build and open a local dashboard showing Codex and Claude Code token usage, cost trends, and per-conversation rankings."
+  display_name: "AI Usage Dashboard"
+  short_description: "一键查看 Codex 和 Claude 的天/周/月用量、费用趋势、以及对话排行"
+  default_prompt: "使用 $ai-usage-dashboard 打开本地用量看板，查看 Codex 和 Claude Code 的 token 使用量、费用趋势和按对话排行。"
