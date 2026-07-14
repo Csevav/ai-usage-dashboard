@@ -141,10 +141,19 @@ def check_required_tools() -> None:
         raise SystemExit(1)
 
 
+def npx_command() -> str | None:
+    if os.name == "nt" and shutil.which("npx.cmd"):
+        return "npx.cmd"
+    if shutil.which("npx"):
+        return "npx"
+    return None
+
+
 def resolve_ccusage_command(notices: list[dict[str, str]]) -> list[str] | None:
     if shutil.which("ccusage"):
         return ["ccusage"]
-    if shutil.which("npx"):
+    npx = npx_command()
+    if npx:
         notices.append(
             {
                 "level": "warning",
@@ -153,7 +162,7 @@ def resolve_ccusage_command(notices: list[dict[str, str]]) -> list[str] | None:
             }
         )
         print_notice("WARN", "未检测到本机 ccusage，已改用 npx 临时运行 ccusage。")
-        return ["npx", "--yes", "ccusage"]
+        return [npx, "--yes", "ccusage"]
     notices.append(
         {
             "level": "error",

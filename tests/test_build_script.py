@@ -29,8 +29,11 @@ class BuildScriptRegressionTest(unittest.TestCase):
         text = BUILD_PY.read_text(encoding="utf-8")
         self.assertIn('if shutil.which("ccusage")', text)
         self.assertIn('return ["ccusage"]', text)
+        self.assertIn('def npx_command() -> str | None:', text)
+        self.assertIn('if os.name == "nt" and shutil.which("npx.cmd")', text)
+        self.assertIn('return "npx.cmd"', text)
         self.assertIn('if shutil.which("npx")', text)
-        self.assertIn('return ["npx", "--yes", "ccusage"]', text)
+        self.assertIn('return [npx, "--yes", "ccusage"]', text)
         self.assertIn("未检测到 ccusage，也未检测到 npx", text)
 
     def test_python_core_uses_ccusage_focused_commands(self):
