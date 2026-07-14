@@ -87,13 +87,25 @@ npm install -g ccusage
 
 ## 🚀 使用 / Usage
 
-推荐用法：在 **Codex** 或终端里直接运行：
+推荐用法：安装后直接运行：
 
 ```bash
-bash ~/.ai-usage-dashboard/build.sh
+ai-usage-dashboard
 ```
 
-这是面向 **Codex / shell workflow** 的直接入口。
+这是跨平台的主入口，适用于 **macOS / Linux / Windows**。
+
+如果你是本地开发或直接从仓库运行：
+
+```bash
+bash ./build.sh
+```
+
+Windows PowerShell:
+
+```powershell
+./build.ps1
+```
 
 也支持直接用 `npx` 运行：
 
@@ -122,6 +134,15 @@ npx @csevav/ai-usage-dashboard --no-open
 - `--no-open` — 只生成 HTML，不自动打开浏览器
 - `--no-summary` — 不在终端打印 markdown 摘要
 
+## 平台支持 / Platform support
+
+- **macOS / Linux**：主功能支持
+- **Windows**：主功能支持，推荐在 PowerShell 中运行 `./build.ps1`，或直接使用安装后的 `ai-usage-dashboard`
+- **后台常驻 / daemon**：
+  - macOS：通过 LaunchAgent 保持固定地址常驻
+  - Windows：通过 Task Scheduler 保持固定地址常驻
+  - Linux：通过 `systemd --user` 保持固定地址常驻
+
 ## 固定地址常驻 / Fixed Local Address
 
 这个项目默认使用固定地址：
@@ -130,11 +151,15 @@ npx @csevav/ai-usage-dashboard --no-open
 http://127.0.0.1:46327
 ```
 
-如果你希望登录 macOS 后后台常驻，并且只在手动点击页面里的“刷新数据”按钮时才重新拉数据，可以安装本地 LaunchAgent：
+如果你希望登录后后台常驻，并且只在手动点击页面里的“刷新数据”按钮时才重新拉数据，可以安装本地 daemon：
 
 ```bash
 ai-usage-dashboard-daemon install
 ```
+
+- macOS 上会创建 LaunchAgent
+- Windows 上会创建 Task Scheduler 任务
+- Linux 上会创建 `~/.config/systemd/user/ai-usage-dashboard-daemon-46327.service`
 
 常用命令：
 
@@ -151,6 +176,8 @@ ai-usage-dashboard-daemon uninstall
 - 仅仅打开 `127.0.0.1:46327` 不会自动刷新数据
 - 只有点击页面里的刷新按钮，才会重新执行统计命令
 - 默认端口是 `46327`；如需改端口，可先设置 `AI_USAGE_DASHBOARD_PORT`
+- Windows daemon 默认任务名是 `AIUsageDashboardDaemon-46327`
+- Linux daemon 默认 service 名是 `ai-usage-dashboard-daemon-46327.service`
 
 ## Skill 用法 / Use as a Codex skill
 
@@ -159,7 +186,7 @@ ai-usage-dashboard-daemon uninstall
 核心入口是：
 
 ```bash
-bash ~/.codex/skills/ai-usage-dashboard/build.sh
+python3 ~/.codex/skills/ai-usage-dashboard/scripts/build_dashboard.py --source-dir ~/.codex/skills/ai-usage-dashboard --home ~/.ai-usage-dashboard
 ```
 
 当用户表达这些意图时，这个 skill `AI Usage Dashboard` 很适合触发：
@@ -178,8 +205,8 @@ bash ~/.codex/skills/ai-usage-dashboard/build.sh
 ## 🔧 依赖 / Requirements
 
 - **Node.js** ≥ 18（用于 `npx`）
-- **Python 3**（用于解析本地日志）
-- **macOS / Linux**（用了 bash + `open` 命令；Windows 暂未测试）
+- **Python 3**（用于解析本地日志和构建本地页面）
+- **macOS / Linux / Windows**（主功能支持；daemon 管理入口支持三端，其中 Linux 依赖 `systemctl --user`）
 - 外部 CLI 依赖只有一个：
   - [`ccusage`](https://www.npmjs.com/package/ccusage)
 
@@ -202,7 +229,7 @@ ccusage --help
 
 如果 `--help` 里已经出现 `codex` 子命令，说明当前版本支持 Codex focused command。
 
-`build.sh` 会自动通过 `npx --yes` 调用上述包，无需额外安装。
+构建脚本会自动通过 `npx --yes` 调用上述包，无需额外安装。
 
 > 当前这份包主要面向两种使用方式：**Codex 里直接运行 shell 命令**，以及 **Claude Code 里的 slash command 集成**。
 

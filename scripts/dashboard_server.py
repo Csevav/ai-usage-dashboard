@@ -33,10 +33,10 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         if not self._authorized_refresh():
             self._write_json(HTTPStatus.FORBIDDEN, {"ok": False, "error": "Forbidden"})
             return
-        build_path = os.path.join(self.directory, "build.sh")
+        build_path = os.path.join(self.directory, "scripts", "build_dashboard.py")
         try:
             proc = subprocess.run(
-                ["bash", build_path, "--no-open", "--no-summary", "--from-server"],
+                [sys.executable, build_path, "--source-dir", self.directory, "--home", self.directory, "--no-open", "--no-summary", "--from-server"],
                 cwd=self.directory,
                 capture_output=True,
                 text=True,

@@ -1,96 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:${PATH:-}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+HOME_DIR="${AI_USAGE_DASHBOARD_HOME:-${HOME}/.ai-usage-dashboard}"
 
-DIR="${AI_USAGE_DASHBOARD_HOME:-${HOME}/.ai-usage-dashboard}"
-OUT="${DIR}/index.html"
-TEMPLATE="${DIR}/template.html"
-SERVER_PORT="${AI_USAGE_DASHBOARD_PORT:-46327}"
-SERVER_URL="http://127.0.0.1:${SERVER_PORT}"
-SERVER_SCRIPT="${DIR}/scripts/dashboard_server.py"
-TOKEN_FILE="${DIR}/.refresh-token"
-LAUNCH_LABEL="com.csevav.ai-usage-dashboard.${SERVER_PORT}"
-ENV_NOTICES='[]'
-CLAUDE_TOOL_NOTICE_SENT=0
-CODEX_TOOL_NOTICE_SENT=0
-INCLUDE_MIXED_TOTALS="${AI_USAGE_DASHBOARD_INCLUDE_MIXED:-0}"
-MAX_JSON_PARALLEL="${AI_USAGE_DASHBOARD_MAX_PARALLEL:-4}"
-CCUSAGE_AVAILABLE=0
-CCUSAGE_CMD=()
-
-NO_OPEN=0
-NO_SUMMARY=0
-FROM_SERVER=0
-for arg in "$@"; do
-  case "$arg" in
-    --no-open)    NO_OPEN=1 ;;
-    --no-summary) NO_SUMMARY=1 ;;
-    --from-server) FROM_SERVER=1 ;;
-    *)
-      echo "Unknown option: $arg" >&2
-      echo "Usage: $0 [--no-open] [--no-summary]" >&2
-      exit 1
-      ;;
-  esac
-done
-
-if [[ ! -f "$TEMPLATE" ]]; then
-  echo "Template not found: $TEMPLATE" >&2
-  echo "Run the installer first so ${DIR} is populated." >&2
-  exit 1
-fi
-
-append_notice() {
-  local level="$1"
-  local zh="$2"
-  local en="$3"
-  ENV_NOTICES="$(
-    python3 - "$ENV_NOTICES" "$level" "$zh" "$en" <<'PY'
-import json
-import sys
-
-items = json.loads(sys.argv[1])
-items.append({
-    "level": sys.argv[2],
-    "zh": sys.argv[3],
-    "en": sys.argv[4],
-})
-print(json.dumps(items, ensure_ascii=False))
-PY
-  )"
-}
-
-print_notice_line() {
-  local level="$1"
-  local message="$2"
-  printf '[%s] %s\n' "$level" "$message" >&2
-}
-
-check_required_tools() {
-  local failed=0
-  if ! command -v node >/dev/null 2>&1; then
-    print_notice_line "ERROR" "未检测到 Node.js。这个 dashboard 需要 Node.js 18+ 作为 npx fallback，并用于读取包版本。"
-    failed=1
-  else
-    local node_major
-    node_major="$(node -p "process.versions.node.split('.')[0]" 2>/dev/null || echo 0)"
-    if [[ "$node_major" -lt 18 ]]; then
-      print_notice_line "ERROR" "当前 Node.js 版本过低（检测到 $(node -v 2>/dev/null || echo unknown)）。请升级到 Node.js 18 或更高版本。"
-      failed=1
-    fi
-  fi
-
-  if ! command -v python3 >/dev/null 2>&1; then
-    print_notice_line "ERROR" "未检测到 python3。这个 dashboard 需要 python3 来生成页面和本地刷新服务。"
-    failed=1
-  fi
-
-  if [[ "$failed" -ne 0 ]]; then
-    echo "前提环境不完整，已停止构建。" >&2
-    exit 1
-  fi
-}
+exec python3 "${SCRIPT_DIR}/scripts/build_dashboard.py" \
+  --source-dir "${SCRIPT_DIR}" \
+  --home "${HOME_DIR}" \
+  "$@"
 
 resolve_ccusage_command() {
   CCUSAGE_AVAILABLE=0

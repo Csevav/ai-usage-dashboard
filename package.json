@@ -24,12 +24,12 @@
     "url": "git+https://github.com/Csevav/ai-usage-dashboard.git"
   },
   "bin": {
-    "ai-usage-dashboard": "./bin/ai-usage-dashboard",
-    "ai-usage-dashboard-daemon": "./bin/ai-usage-dashboard-daemon"
+    "ai-usage-dashboard": "./bin/ai-usage-dashboard.js",
+    "ai-usage-dashboard-daemon": "./bin/ai-usage-dashboard-daemon.js"
   },
   "scripts": {
-    "copy-dashboard": "bash ./scripts/copy-dashboard.sh",
-    "copy-command": "bash ./scripts/copy-command.sh",
+    "copy-dashboard": "node ./scripts/install.js --dashboard",
+    "copy-command": "node ./scripts/install.js --command",
     "postinstall": "npm run copy-dashboard && npm run copy-command"
   },
   "files": [
@@ -37,12 +37,16 @@
     "agents/openai.yaml",
     "bin/",
     "build.sh",
+    "build.ps1",
     "template.html",
+    "scripts/build_dashboard.py",
+    "scripts/dashboard_daemon.py",
     "scripts/copy-dashboard.sh",
     "scripts/copy-command.sh",
     "scripts/dashboard_daemon.sh",
     "scripts/dashboard_server.py",
-    "scripts/manage_launch_agent.sh",
+    "scripts/install.js",
+    "scripts/manage_daemon.py",
     "commands/ai-usage.md",
     "README.md",
     "LICENSE"

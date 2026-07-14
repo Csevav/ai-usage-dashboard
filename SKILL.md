@@ -38,14 +38,14 @@ Do not use this skill for a simple terminal-only total, a single date lookup wit
 Run the bundled builder:
 
 ```bash
-bash ai-usage-dashboard/build.sh
+python3 ai-usage-dashboard/scripts/build_dashboard.py --source-dir ai-usage-dashboard --home ~/.ai-usage-dashboard
 ```
 
 Use these options when needed:
 
 ```bash
-bash ai-usage-dashboard/build.sh --no-open
-bash ai-usage-dashboard/build.sh --no-open --no-summary
+python3 ai-usage-dashboard/scripts/build_dashboard.py --source-dir ai-usage-dashboard --home ~/.ai-usage-dashboard --no-open
+python3 ai-usage-dashboard/scripts/build_dashboard.py --source-dir ai-usage-dashboard --home ~/.ai-usage-dashboard --no-open --no-summary
 ```
 
 If the skill is installed in the local Codex skills directory, run it from the installed path so the copied runtime files stay in sync.
@@ -92,6 +92,12 @@ Optional local install when `npx` download is blocked or too slow:
 ```bash
 npm install -g ccusage
 ```
+
+Platform support:
+
+- Main dashboard flow supports macOS, Linux, and Windows
+- Windows should use the Python or PowerShell entrypoint, not `bash`
+- Background daemon management is available on macOS, Windows, and Linux systemd user sessions
 
 Local data dependency:
 

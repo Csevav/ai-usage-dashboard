@@ -49,15 +49,15 @@ class DashboardServerTest(unittest.TestCase):
             directory = Path(tmp)
             token_file = directory / ".refresh-token"
             marker = directory / "refreshed"
+            scripts_dir = directory / "scripts"
             token_file.write_text("secret-token", encoding="utf-8")
-            build = directory / "build.sh"
+            scripts_dir.mkdir()
+            build = scripts_dir / "build_dashboard.py"
             build.write_text(
-                "#!/usr/bin/env bash\n"
-                "set -euo pipefail\n"
-                "touch refreshed\n",
+                "from pathlib import Path\n"
+                "Path('refreshed').touch()\n",
                 encoding="utf-8",
             )
-            build.chmod(0o755)
 
             server = _serve(directory, token_file)
             try:

@@ -1,0 +1,68 @@
+name: Cross Platform Verification
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install package
+        shell: bash
+        run: npm install
+
+      - name: Run unit tests
+        shell: bash
+        run: python -m unittest discover -s tests -p 'test_*.py' -v
+
+      - name: Smoke test CLI (Unix)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          export AI_USAGE_DASHBOARD_HOME="$RUNNER_TEMP/ai-usage-dashboard-home"
+          node bin/ai-usage-dashboard.js --no-open --no-summary --from-server
+          test -f "$AI_USAGE_DASHBOARD_HOME/index.html"
+
+      - name: Smoke test CLI (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $env:AI_USAGE_DASHBOARD_HOME = Join-Path $env:RUNNER_TEMP "ai-usage-dashboard-home"
+          node bin/ai-usage-dashboard.js --no-open --no-summary --from-server
+          if (-not (Test-Path (Join-Path $env:AI_USAGE_DASHBOARD_HOME "index.html"))) {
+            throw "index.html was not generated"
+          }
+
+      - name: Smoke test PowerShell wrapper
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $env:AI_USAGE_DASHBOARD_HOME = Join-Path $env:RUNNER_TEMP "ai-usage-dashboard-ps1-home"
+          ./build.ps1 --no-open --no-summary --from-server
+          if (-not (Test-Path (Join-Path $env:AI_USAGE_DASHBOARD_HOME "index.html"))) {
+            throw "PowerShell wrapper did not generate index.html"
+          }
+
+      - name: Check daemon config output
+        shell: bash
+        run: node bin/ai-usage-dashboard-daemon.js print-config

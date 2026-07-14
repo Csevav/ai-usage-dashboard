@@ -29,7 +29,7 @@ PY
 fi
 
 if [[ ! -f "${INDEX_FILE}" ]]; then
-  bash "${DIR}/build.sh" --no-open --no-summary
+  python3 "${DIR}/scripts/build_dashboard.py" --source-dir "${DIR}" --home "${DIR}" --no-open --no-summary
 fi
 
 exec python3 "${SERVER_SCRIPT}" --dir "${DIR}" --port "${PORT}" --token-file "${TOKEN_FILE}"

@@ -2,4 +2,5 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-exec bash "${SCRIPT_DIR}/scripts/manage_launch_agent.sh" "$@"
+HOME_DIR="${AI_USAGE_DASHBOARD_HOME:-${HOME}/.ai-usage-dashboard}"
+exec python3 "${SCRIPT_DIR}/scripts/manage_daemon.py" "$@" --source-dir "${SCRIPT_DIR}" --home "${HOME_DIR}"

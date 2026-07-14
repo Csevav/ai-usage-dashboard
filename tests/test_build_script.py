@@ -1,75 +1,85 @@
-import re
+import json
 import unittest
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
 BUILD_SH = ROOT / "build.sh"
+BUILD_PS1 = ROOT / "build.ps1"
+BUILD_PY = ROOT / "scripts" / "build_dashboard.py"
+INSTALL_JS = ROOT / "scripts" / "install.js"
+PACKAGE_JSON = ROOT / "package.json"
 TEMPLATE_HTML = ROOT / "template.html"
 
 
 class BuildScriptRegressionTest(unittest.TestCase):
-    def test_capture_json_command_keeps_build_alive_on_source_failure(self):
+    def test_unix_wrapper_calls_python_core(self):
         text = BUILD_SH.read_text(encoding="utf-8")
-        match = re.search(r"capture_json_command\(\) \{(.*?)\n\}", text, re.DOTALL)
-        self.assertIsNotNone(match, "capture_json_command() not found in build.sh")
-        body = match.group(1)
-        self.assertIn('printf -v "$target_var" \'%s\' "$fallback"', body)
-        self.assertIn("return 0", body)
-        self.assertNotIn('return "$status"', body)
+        self.assertIn('exec python3 "${SCRIPT_DIR}/scripts/build_dashboard.py"', text)
+        self.assertIn('--source-dir "${SCRIPT_DIR}"', text)
+        self.assertIn('--home "${HOME_DIR}"', text)
 
-    def test_build_script_normalizes_period_rows(self):
-        text = BUILD_SH.read_text(encoding="utf-8")
-        self.assertIn("def normalize_period_rows(rows, grain):", text)
-        self.assertIn('fixed.get("period")', text)
-        self.assertIn('"daily": "date"', text)
-        self.assertIn('"weekly": "week"', text)
-        self.assertIn('"monthly": "month"', text)
+    def test_powershell_wrapper_exists_for_windows(self):
+        text = BUILD_PS1.read_text(encoding="utf-8")
+        self.assertIn('$ScriptDir/scripts/build_dashboard.py', text)
+        self.assertIn('Get-Command py', text)
+        self.assertIn('Get-Command python', text)
 
-    def test_build_script_uses_ccusage_claude_focused_commands(self):
-        text = BUILD_SH.read_text(encoding="utf-8")
-        self.assertIn('"${CCUSAGE_CMD[@]}" claude daily --json --breakdown', text)
-        self.assertIn('"${CCUSAGE_CMD[@]}" claude weekly --json --breakdown', text)
-        self.assertIn('"${CCUSAGE_CMD[@]}" claude monthly --json --breakdown', text)
-        self.assertIn('"${CCUSAGE_CMD[@]}" claude session --json', text)
-        self.assertIn('launch_json_command DAILY', text)
-        self.assertIn('launch_json_command WEEKLY', text)
-        self.assertIn('launch_json_command MONTHLY', text)
-        self.assertIn("launch_json_command DAILY '{\"daily\":[]}' CLAUDE_TOOL_NOTICE_SENT \\", text)
-        self.assertIn("launch_json_command WEEKLY '{\"weekly\":[]}' CLAUDE_TOOL_NOTICE_SENT \\", text)
-        self.assertIn("launch_json_command MONTHLY '{\"monthly\":[]}' CLAUDE_TOOL_NOTICE_SENT \\", text)
-
-    def test_build_script_uses_ccusage_codex_focused_command(self):
-        text = BUILD_SH.read_text(encoding="utf-8")
-        self.assertIn('"${CCUSAGE_CMD[@]}" codex daily --json', text)
-        self.assertIn('"${CCUSAGE_CMD[@]}" codex monthly --json', text)
-        self.assertIn('"${CCUSAGE_CMD[@]}" codex session --json', text)
-        self.assertNotIn("ccusage-codex", text)
-
-    def test_build_script_prefers_local_ccusage_and_falls_back_to_npx(self):
-        text = BUILD_SH.read_text(encoding="utf-8")
-        self.assertIn("resolve_ccusage_command()", text)
-        self.assertIn("command -v ccusage", text)
-        self.assertIn("CCUSAGE_CMD=(ccusage)", text)
-        self.assertIn("CCUSAGE_CMD=(npx --yes ccusage)", text)
+    def test_python_core_prefers_local_ccusage_and_falls_back_to_npx(self):
+        text = BUILD_PY.read_text(encoding="utf-8")
+        self.assertIn('if shutil.which("ccusage")', text)
+        self.assertIn('return ["ccusage"]', text)
+        self.assertIn('if shutil.which("npx")', text)
+        self.assertIn('return ["npx", "--yes", "ccusage"]', text)
         self.assertIn("未检测到 ccusage，也未检测到 npx", text)
-        self.assertIn('if [[ "$CCUSAGE_AVAILABLE" -eq 1 ]]; then', text)
 
-    def test_build_script_uses_ccusage_claude_session_totals_not_local_pricing(self):
-        text = BUILD_SH.read_text(encoding="utf-8")
-        self.assertIn('claude_sessions_raw = load_env_json("CLAUDE_SESSIONS", {"sessions": []})', text)
-        self.assertIn('for s in claude_sessions_raw.get("sessions", [])', text)
-        self.assertNotIn("PRICING = {", text)
-        self.assertNotIn("title or sid[:8]", text)
+    def test_python_core_uses_ccusage_focused_commands(self):
+        text = BUILD_PY.read_text(encoding="utf-8")
+        self.assertIn('["claude", "daily", "--json", "--breakdown"]', text)
+        self.assertIn('["claude", "weekly", "--json", "--breakdown"]', text)
+        self.assertIn('["claude", "monthly", "--json", "--breakdown"]', text)
+        self.assertIn('["claude", "session", "--json"]', text)
+        self.assertIn('["codex", "daily", "--json"]', text)
+        self.assertIn('["codex", "monthly", "--json"]', text)
+        self.assertIn('["codex", "session", "--json"]', text)
 
-    def test_build_script_exports_project_rollups(self):
-        text = BUILD_SH.read_text(encoding="utf-8")
-        self.assertIn("def build_project_rows(sessions):", text)
-        self.assertIn('"project": claude_project_label(s.get("projectPath"))', text)
-        self.assertIn('"project": codex_project(s)', text)
-        self.assertIn('"projects": build_project_rows(claude_session_rows)', text)
-        self.assertIn('"projects": build_project_rows(codex_session_rows)', text)
-        self.assertIn('p.get("cwd")', text)
+    def test_python_core_normalizes_period_rows_and_builds_projects(self):
+        text = BUILD_PY.read_text(encoding="utf-8")
+        self.assertIn("def normalize_period_rows(rows: list[Any], grain: str)", text)
+        self.assertIn('key_by_grain = {"daily": "date", "weekly": "week", "monthly": "month"}', text)
+        self.assertIn("def build_project_rows(sessions: list[dict[str, Any]])", text)
+        self.assertIn('bucket["models"].update(session.get("models") or [])', text)
+        self.assertIn("except ImportError", text)
+        self.assertIn('["netstat", "-ano", "-p", "tcp"]', text)
+        self.assertIn('["taskkill", "/PID", pid, "/F"]', text)
+        self.assertIn('["ss", "-ltnp"]', text)
+
+    def test_python_core_renders_combined_summary(self):
+        text = BUILD_PY.read_text(encoding="utf-8")
+        self.assertIn('"combined": {', text)
+        self.assertIn('build_summary("claude", mixed_daily_rows, mixed_weekly_rows, mixed_monthly_rows', text)
+        self.assertIn('html = html.replace("__DATA__", dump_json_for_script(payload))', text)
+
+    def test_install_script_is_cross_platform(self):
+        text = INSTALL_JS.read_text(encoding="utf-8")
+        self.assertIn('const homeDir = process.env.AI_USAGE_DASHBOARD_HOME', text)
+        self.assertIn('copyFile(path.join(root, "commands", "ai-usage.md")', text)
+        self.assertIn('const rootCompatFiles = ["dashboard_daemon.sh"]', text)
+        self.assertIn('build_dashboard.py', text)
+        self.assertIn('dashboard_daemon.py', text)
+        self.assertIn('manage_daemon.py', text)
+
+    def test_package_uses_node_launcher_and_cross_platform_install(self):
+        package = json.loads(PACKAGE_JSON.read_text(encoding="utf-8"))
+        self.assertEqual(package["bin"]["ai-usage-dashboard"], "./bin/ai-usage-dashboard.js")
+        self.assertEqual(package["bin"]["ai-usage-dashboard-daemon"], "./bin/ai-usage-dashboard-daemon.js")
+        self.assertEqual(package["scripts"]["copy-dashboard"], "node ./scripts/install.js --dashboard")
+        self.assertEqual(package["scripts"]["copy-command"], "node ./scripts/install.js --command")
+        self.assertIn("build.ps1", package["files"])
+        self.assertIn("scripts/build_dashboard.py", package["files"])
+        self.assertIn("scripts/dashboard_daemon.py", package["files"])
+        self.assertIn("scripts/install.js", package["files"])
+        self.assertIn("scripts/manage_daemon.py", package["files"])
 
     def test_template_has_project_first_detail_tabs_for_all_scopes(self):
         text = TEMPLATE_HTML.read_text(encoding="utf-8")
@@ -80,25 +90,6 @@ class BuildScriptRegressionTest(unittest.TestCase):
         self.assertGreaterEqual(text.count('<button class="dtab active" data-mode="project"'), 3)
         self.assertIn('wireDetailCard("combined")', text)
         self.assertIn('refreshDetailForScope("combined")', text)
-
-    def test_build_script_builds_summary_from_ccusage_totals(self):
-        text = BUILD_SH.read_text(encoding="utf-8")
-        self.assertNotIn("def command_totals(scope, since=None, until=None):", text)
-        self.assertIn('INCLUDE_MIXED_TOTALS="${AI_USAGE_DASHBOARD_INCLUDE_MIXED:-0}"', text)
-        self.assertIn('if [[ "$INCLUDE_MIXED_TOTALS" == "1" ]]; then', text)
-        self.assertIn('"${CCUSAGE_CMD[@]}" daily --json --breakdown', text)
-        self.assertIn('"${CCUSAGE_CMD[@]}" weekly --json --breakdown', text)
-        self.assertIn('"${CCUSAGE_CMD[@]}" monthly --json --breakdown', text)
-        self.assertIn('"combined": {', text)
-        self.assertIn('"summary": build_summary("claude", mixed_daily_rows, mixed_weekly_rows, mixed_monthly_rows, mixed_monthly.get("totals", {}))', text)
-
-    def test_build_script_limits_parallelism_and_overlaps_server_start(self):
-        text = BUILD_SH.read_text(encoding="utf-8")
-        self.assertIn('MAX_JSON_PARALLEL="${AI_USAGE_DASHBOARD_MAX_PARALLEL:-4}"', text)
-        self.assertIn('while [[ "${#JSON_RUNNING_PIDS[@]}" -ge "$MAX_JSON_PARALLEL" ]]; do', text)
-        self.assertIn('ensure_server &', text)
-        self.assertIn('SERVER_READY_PID="$!"', text)
-        self.assertIn('wait "$SERVER_READY_PID"', text)
 
 
 if __name__ == "__main__":
